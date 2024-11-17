@@ -42,7 +42,10 @@ type RequiredTests() =
     match Decode.fromString("\"ab\"", Required.char) with
     | Ok _ -> Assert.Fail()
     | Error err ->
-      Assert.AreEqual("Expecting a char but got a string of size: 2", err.message)
+      Assert.AreEqual(
+        "Expecting a char but got a string of size: 2",
+        err.message
+      )
 
   [<TestMethod>]
   member _.``JDeck can parse guids``() =
@@ -160,36 +163,31 @@ type RequiredTests() =
     let json =
       """{ "Name": "John Doe", "Age": 30, "Address": { "City": "New York", "Country": "USA" } }"""
 
-    match
-      Decode.validateFromString(
-        json,
-        (fun element -> validation {
+    let addressDecoder =
+      fun address -> result {
+        let! city = address |> Required.property "City" Required.string
 
-          let! name = element |> Required.property "Name" Required.string
-          and! age = element |> Required.property "Age" Required.int
+        and! country = address |> Required.property "Country" Required.string
 
-          and! address =
-            element
-            |> Required.property
-              "Address"
-              (fun address -> result {
-                let! city =
-                  address |> Required.property "City" Required.string
+        return {| city = city; country = country |}
+      }
 
-                and! country =
-                  address |> Required.property "Country" Required.string
+    let decoder =
+      fun element -> validation {
 
-                return {| city = city; country = country |}
-              })
+        let! name = element |> Required.property "Name" Required.string
+        and! age = element |> Required.property "Age" Required.int
 
-          return {|
-            name = name
-            age = age
-            address = address
-          |}
-        })
-      )
-    with
+        and! address = element |> Required.property "Address" addressDecoder
+
+        return {|
+          name = name
+          age = age
+          address = address
+        |}
+      }
+
+    match Decode.validateFromString(json, decoder) with
     | Ok value ->
       Assert.AreEqual("John Doe", value.name)
       Assert.AreEqual(30, value.age)
@@ -199,40 +197,42 @@ type RequiredTests() =
       err |> List.fold (fun acc e -> acc + e.message + ", ") "" |> Assert.Fail
 
   [<TestMethod>]
-  member _.``JDeck can decode nested arrays``() =
+  member _.``JDeck can traverse with fail-first results of sequence properties``() =
+
+    let addressDecoder =
+      fun _ address -> result {
+        let! city = address |> Required.property "city" Required.string
+
+        and! country = address |> Required.property "country" Required.string
+
+        return {| city = city; country = country |}
+      }
+
+    let decoder =
+      fun element -> validation {
+        let! name = element |> Required.property "name" Required.string
+        and! age = element |> Required.property "age" Required.int
+
+        and! addresses =
+          element |> Required.collectArrayProperty "addresses" addressDecoder
+
+        return {|
+          name = name
+          age = age
+          addresses = addresses
+        |}
+      }
+
     let json =
-      """{ "Name": "John Doe", "Age": 30, "Addresses": [ { "City": "New York", "Country": "USA" }, { "City": "London", "Country": "UK" } ] }"""
+      """{
+  "name": "John Doe", "age": 30,
+  "addresses": [
+    { "city": "New York", "country": "USA" },
+    { "city": "London", "country": "UK" }
+  ]
+}"""
 
-    match
-      Decode.validateFromString(
-        json,
-        (fun element -> validation {
-
-          let! name = element |> Required.property "Name" Required.string
-          and! age = element |> Required.property "Age" Required.int
-
-          and! addresses =
-            element
-            |> Required.property
-              "Addresses"
-              (array(fun _ address -> result {
-                let! city =
-                  address |> Required.property "City" Required.string
-
-                and! country =
-                  address |> Required.property "Country" Required.string
-
-                return {| city = city; country = country |}
-              }))
-
-          return {|
-            name = name
-            age = age
-            addresses = addresses
-          |}
-        })
-      )
-    with
+    match Decode.validateFromString(json, decoder) with
     | Ok value ->
       Assert.AreEqual("John Doe", value.name)
       Assert.AreEqual(30, value.age)
@@ -243,3 +243,48 @@ type RequiredTests() =
       Assert.AreEqual("UK", value.addresses[1].country)
     | Error err ->
       err |> List.fold (fun acc e -> acc + e.message + ", ") "" |> Assert.Fail
+
+  [<TestMethod>]
+  member _.``JDeck can traverse with traversable results of sequence properties``() =
+
+    let addressDecoder = fun _ address -> validation {
+      let! city = address |> Required.property "city" Required.string
+
+      and! country = address |> Required.property "country" Required.string
+
+      return {| city = city; country = country |}
+    }
+
+    let decoder = fun element -> validation {
+      let! name = element |> Required.property "name" Required.string
+      and! age = element |> Required.property "age" Required.int
+
+      and! addresses = element |> Required.arrayProperty "addresses" addressDecoder
+
+      return {|
+        name = name
+        age = age
+        addresses = addresses
+      |}
+    }
+
+    let json = """{
+  "name": "John Doe", "age": 30,
+  "addresses": [
+    { "city": "New York", "country": "USA" },
+    { "city": "London", "country": "UK" }
+  ]
+}"""
+
+    match Decode.validateFromString(json, decoder) with
+    | Ok value ->
+      Assert.AreEqual("John Doe", value.name)
+      Assert.AreEqual(30, value.age)
+      Assert.AreEqual(2, value.addresses.Length)
+      Assert.AreEqual("New York", value.addresses[0].city)
+      Assert.AreEqual("USA", value.addresses[0].country)
+      Assert.AreEqual("London", value.addresses[1].city)
+      Assert.AreEqual("UK", value.addresses[1].country)
+    | Error err ->
+      err |> List.fold (fun acc e -> acc + e.message + ", ") "" |> Assert.Fail
+
