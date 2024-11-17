@@ -11,6 +11,7 @@
 
     <ItemGroup>
         <Compile Include="RequiredTests.fs" />
+        <Compile Include="OptionalTests.fs" />
         <Compile Include="Program.fs"/>
     </ItemGroup>
 
