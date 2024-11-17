@@ -5,7 +5,6 @@ open System.IO
 open System.Text.Json
 
 
-
 type DecodeError = {
   value: JsonElement
   kind: JsonValueKind
@@ -29,16 +28,19 @@ module DecodeError =
     property = None
   }
 
-  let inline ofIndexed<'TResult> (el: JsonElement, index, message) : DecodeError = {
-    value = el
-    kind = el.ValueKind
-    rawValue = el.GetRawText()
-    targetType = typeof<'TResult>
-    message = message
-    exn = None
-    index = Some index
-    property = None
-  }
+  let inline ofIndexed<'TResult>
+    (el: JsonElement, index, message)
+    : DecodeError =
+    {
+      value = el
+      kind = el.ValueKind
+      rawValue = el.GetRawText()
+      targetType = typeof<'TResult>
+      message = message
+      exn = None
+      index = Some index
+      property = None
+    }
 
   let withIndex i (error: DecodeError) = { error with index = Some i }
 
@@ -59,19 +61,27 @@ module DecodeError =
   }
 
 type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
-type IndexedDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeError>
-type ValidationDecoder<'TResult> = JsonElement -> Result<'TResult, DecodeError list>
+
+type IndexedDecoder<'TResult> =
+  int -> JsonElement -> Result<'TResult, DecodeError>
+
+type ValidationDecoder<'TResult> =
+  JsonElement -> Result<'TResult, DecodeError list>
 
 
 module Seq =
-  let inline collectErrors ([<InlineIfLambda>] f: int -> Decoder<_>) xs =
+  let inline collectErrors
+    ([<InlineIfLambda>] f:
+      int -> JsonElement -> Result<'TValue, DecodeError list>)
+    xs
+    =
     let values = ResizeArray<_>()
     let errors = ResizeArray<_>()
 
     for i, x in Seq.indexed xs do
       match f i x with
       | Ok value -> values.Add value
-      | Error error -> errors.Add(error |> DecodeError.withIndex i)
+      | Error error -> errors.AddRange(error)
 
     if errors.Count > 0 then
       Error(errors |> List.ofSeq)
@@ -97,23 +107,24 @@ module Seq =
 
 module Decode =
 
-  let inline sequence ([<InlineIfLambda>] decoder: IndexedDecoder<_>) (el: JsonElement) =
-      el.EnumerateArray() |> Seq.collectUntilError decoder
+  let inline sequence
+    ([<InlineIfLambda>] decoder: IndexedDecoder<_>)
+    (el: JsonElement)
+    =
+    el.EnumerateArray() |> Seq.collectUntilError decoder
 
-  let inline seqTraverse ([<InlineIfLambda>] decoder) (el: JsonElement) =
+  let inline seqTraverse
+    ([<InlineIfLambda>] decoder:
+      int -> JsonElement -> Result<'TValue, DecodeError list>)
+    (el: JsonElement)
+    =
     el.EnumerateArray() |> Seq.collectErrors decoder
 
   let inline array ([<InlineIfLambda>] decoder) (el: JsonElement) =
     sequence decoder el |> Result.map Array.ofSeq
 
-  let inline arrayTraverse ([<InlineIfLambda>] decoder) (el: JsonElement) =
-    seqTraverse decoder el |> Result.map Array.ofSeq
-
   let inline list ([<InlineIfLambda>] decoder) (el: JsonElement) =
     sequence decoder el |> Result.map List.ofSeq
-
-  let inline listTraverse ([<InlineIfLambda>] decoder) (el: JsonElement) =
-    seqTraverse decoder el |> Result.map List.ofSeq
 
   module Required =
 
@@ -284,6 +295,78 @@ module Decode =
         |> DecodeError.withProperty name
         |> Error
 
+    let inline seqProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder)
+      (element: JsonElement)
+      =
+      match element.TryGetProperty name with
+      | true, el -> seqTraverse decoder el
+      | false, _ ->
+        [
+          DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+          |> DecodeError.withProperty name
+        ]
+        |> Error
+
+    let inline listProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder)
+      (element: JsonElement)
+      =
+      seqProperty name decoder element |> Result.map List.ofSeq
+
+    let inline arrayProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder)
+      (element: JsonElement)
+      =
+      seqProperty name decoder element |> Result.map Array.ofSeq
+
+    let inline collectSeqProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder:
+        int -> JsonElement -> Result<'TValue, DecodeError>)
+      (element: JsonElement)
+      =
+      match element.TryGetProperty name with
+      | true, el ->
+        let errors = ResizeArray<_>()
+        let values = ResizeArray<_>()
+
+        for i, x in el.EnumerateArray() |> Seq.indexed do
+          match decoder i x with
+          | Ok value -> values.Add value
+          | Error error -> errors.Add error
+
+        if errors.Count > 0 then
+          Error(errors |> List.ofSeq)
+        else
+          Ok(values :> seq<_>)
+      | false, _ ->
+        [
+          DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+          |> DecodeError.withProperty name
+        ]
+        |> Error
+
+    let inline collectArrayProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder:
+        int -> JsonElement -> Result<'TValue, DecodeError>)
+      (element: JsonElement)
+      =
+      collectSeqProperty name decoder element |> Result.map Array.ofSeq
+
+    let inline collectListProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder:
+        int -> JsonElement -> Result<'TValue, DecodeError>)
+      (element: JsonElement)
+      =
+      collectSeqProperty name decoder element |> Result.map List.ofSeq
+
+
   module Optional =
 
     let inline internal shell
@@ -452,8 +535,94 @@ module Decode =
       (element: JsonElement)
       =
       match element.TryGetProperty name with
-      | true, el -> decoder el |> Result.map ValueSome
-      | false, _ -> Ok ValueNone
+      | true, el -> decoder el |> Result.map Some
+      | false, _ -> Ok None
+
+    let inline seqProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder)
+      (element: JsonElement)
+      =
+      match element.TryGetProperty name with
+      | true, el -> seqTraverse decoder el |> Result.map Some
+      | false, _ -> Ok None
+
+    let inline listProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder)
+      (element: JsonElement)
+      =
+      seqProperty name decoder element
+      |> Result.map(
+        function
+        | Some v -> List.ofSeq v |> Some
+        | None -> None
+      )
+
+    let inline arrayProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder)
+      (element: JsonElement)
+      =
+      seqProperty name decoder element
+      |> Result.map(
+        function
+        | Some v -> Array.ofSeq v |> Some
+        | None -> None
+      )
+
+    let inline collectSeqProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder:
+        int -> JsonElement -> Result<'TValue, DecodeError>)
+      (element: JsonElement)
+      =
+      match element.TryGetProperty name with
+      | true, el ->
+        let errors = ResizeArray<_>()
+        let values = ResizeArray<_>()
+
+        for i, x in el.EnumerateArray() |> Seq.indexed do
+          match decoder i x with
+          | Ok value -> values.Add value
+          | Error error -> errors.Add error
+
+        if errors.Count > 0 then
+          Error(errors |> List.ofSeq)
+        else
+          Ok(values :> seq<_> |> Some)
+      | false, _ ->
+        [
+          DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+          |> DecodeError.withProperty name
+        ]
+        |> Error
+
+    let inline collectArrayProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder:
+        int -> JsonElement -> Result<'TValue, DecodeError>)
+      (element: JsonElement)
+      =
+      collectSeqProperty name decoder element
+      |> Result.map(
+        function
+        | Some v -> Array.ofSeq v |> Some
+        | None -> None
+      )
+
+    let inline collectListProperty
+      (name: string)
+      ([<InlineIfLambda>] decoder:
+        int -> JsonElement -> Result<'TValue, DecodeError>)
+      (element: JsonElement)
+      =
+      collectSeqProperty name decoder element
+      |> Result.map(
+        function
+        | Some v -> List.ofSeq v |> Some
+        | None -> None
+      )
 
 type Decode =
   static member inline fromString(value: string, options, decoder: Decoder<_>) =

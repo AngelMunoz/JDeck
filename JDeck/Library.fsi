@@ -30,24 +30,14 @@ module Decode =
   val inline sequence:
     [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult seq, DecodeError>
 
-  val inline seqTraverse:
-    [<InlineIfLambda>] decoder: (int -> Decoder<'TResult>) -> el: JsonElement -> Result<'TResult seq, DecodeError list>
-
   val inline array:
     [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult array, DecodeError>
-
-  val inline arrayTraverse:
-    [<InlineIfLambda>] decoder: (int -> Decoder<'TResult>) ->
-    el: JsonElement ->
-      Result<'TResult array, DecodeError list>
 
   val inline list:
     [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult list, DecodeError>
 
-  val inline listTraverse:
-    [<InlineIfLambda>] decoder: (int -> Decoder<'TResult>) -> el: JsonElement -> Result<'TResult list, DecodeError list>
-
   module Required =
+
 
     val string: Decoder<string>
     val boolean: Decoder<bool>
@@ -67,6 +57,42 @@ module Decode =
       element: JsonElement ->
         Result<'TResult, DecodeError>
 
+    val inline seqProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
+      JsonElement ->
+        Result<'TResult seq, DecodeError list>
+
+    val inline listProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
+      JsonElement ->
+        Result<'TResult list, DecodeError list>
+
+    val inline arrayProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
+      JsonElement ->
+        Result<'TResult array, DecodeError list>
+
+    val inline collectSeqProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
+      JsonElement ->
+        Result<'TResult seq, DecodeError list>
+
+    val inline collectListProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
+      JsonElement ->
+        Result<'TResult list, DecodeError list>
+
+    val inline collectArrayProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
+      JsonElement ->
+        Result<'TResult array, DecodeError list>
+
   module Optional =
 
     val string: Decoder<string option>
@@ -85,7 +111,43 @@ module Decode =
       name: string ->
       [<InlineIfLambda>] decoder: Decoder<'TResult> ->
       element: JsonElement ->
-        Result<'TResult voption, DecodeError>
+        Result<'TResult option, DecodeError>
+
+    val inline seqProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
+      JsonElement ->
+        Result<'TResult seq option, DecodeError list>
+
+    val inline listProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
+      JsonElement ->
+        Result<'TResult list option, DecodeError list>
+
+    val inline arrayProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
+      JsonElement ->
+        Result<'TResult array option, DecodeError list>
+
+    val inline collectSeqProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
+      JsonElement ->
+        Result<'TResult seq option, DecodeError list>
+
+    val inline collectListProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
+      JsonElement ->
+        Result<'TResult list option, DecodeError list>
+
+    val inline collectArrayProperty:
+      name: string ->
+      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
+      JsonElement ->
+        Result<'TResult array option, DecodeError list>
 
 [<Class>]
 type Decode =
