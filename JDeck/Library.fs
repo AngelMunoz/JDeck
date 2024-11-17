@@ -106,25 +106,25 @@ module Seq =
       Ok(values :> seq<_>)
 
 module Decode =
+  module Decode =
+    let inline sequence
+      ([<InlineIfLambda>] decoder: IndexedDecoder<_>)
+      (el: JsonElement)
+      =
+      el.EnumerateArray() |> Seq.collectUntilError decoder
 
-  let inline sequence
-    ([<InlineIfLambda>] decoder: IndexedDecoder<_>)
-    (el: JsonElement)
-    =
-    el.EnumerateArray() |> Seq.collectUntilError decoder
+    let inline seqTraverse
+      ([<InlineIfLambda>] decoder:
+        int -> JsonElement -> Result<'TValue, DecodeError list>)
+      (el: JsonElement)
+      =
+      el.EnumerateArray() |> Seq.collectErrors decoder
 
-  let inline seqTraverse
-    ([<InlineIfLambda>] decoder:
-      int -> JsonElement -> Result<'TValue, DecodeError list>)
-    (el: JsonElement)
-    =
-    el.EnumerateArray() |> Seq.collectErrors decoder
+    let inline array ([<InlineIfLambda>] decoder) (el: JsonElement) =
+      sequence decoder el |> Result.map Array.ofSeq
 
-  let inline array ([<InlineIfLambda>] decoder) (el: JsonElement) =
-    sequence decoder el |> Result.map Array.ofSeq
-
-  let inline list ([<InlineIfLambda>] decoder) (el: JsonElement) =
-    sequence decoder el |> Result.map List.ofSeq
+    let inline list ([<InlineIfLambda>] decoder) (el: JsonElement) =
+      sequence decoder el |> Result.map List.ofSeq
 
   module Required =
 
@@ -301,7 +301,7 @@ module Decode =
       (element: JsonElement)
       =
       match element.TryGetProperty name with
-      | true, el -> seqTraverse decoder el
+      | true, el -> Decode.seqTraverse decoder el
       | false, _ ->
         [
           DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
@@ -544,7 +544,7 @@ module Decode =
       (element: JsonElement)
       =
       match element.TryGetProperty name with
-      | true, el -> seqTraverse decoder el |> Result.map Some
+      | true, el -> Decode.seqTraverse decoder el |> Result.map Some
       | false, _ -> Ok None
 
     let inline listProperty

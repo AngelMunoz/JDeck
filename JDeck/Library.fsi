@@ -27,14 +27,15 @@ type IndexedDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeErr
 type ValidationDecoder<'TResult> = JsonElement -> Result<'TResult, DecodeError list>
 
 module Decode =
-  val inline sequence:
-    [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult seq, DecodeError>
+  module Decode =
+    val inline sequence:
+      [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult seq, DecodeError>
 
-  val inline array:
-    [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult array, DecodeError>
+    val inline array:
+      [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult array, DecodeError>
 
-  val inline list:
-    [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult list, DecodeError>
+    val inline list:
+      [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult list, DecodeError>
 
   module Required =
 

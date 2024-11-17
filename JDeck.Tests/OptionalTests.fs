@@ -215,7 +215,7 @@ type OptionalTests() =
         return value
       }
 
-      match Decode.fromString(json, array valueDecoder) with
+      match Decode.fromString(json, Decode.array valueDecoder) with
       | Ok value -> Assert.AreEqual(None, value[0])
       | Error err -> Assert.Fail(err.message)
 
@@ -230,7 +230,7 @@ type OptionalTests() =
         return value
       }
 
-      match Decode.fromString(json, array valueDecoder) with
+      match Decode.fromString(json, Decode.array valueDecoder) with
       | Ok value ->
         Assert.AreEqual(5, value.Length)
         Assert.AreEqual(1, value[0].Value)
@@ -239,3 +239,56 @@ type OptionalTests() =
         Assert.AreEqual(None, value[3])
         Assert.AreEqual(5, value[4].Value)
       | Error err -> Assert.Fail(err.message)
+
+    [<TestMethod>]
+    member _.``JDeck can decode nested objects with optional properties``() =
+      let addressDecoder =
+        fun _ address -> result {
+          let! city = address |> Required.property "city" Required.string
+
+          and! country = address |> Required.property "country" Required.string
+          and! zipCode = address |> Optional.property "zipCode" Required.string
+
+          return {| city = city; country = country; zipCode = zipCode |}
+        }
+
+      let decoder =
+        fun element -> result {
+          let! name = element |> Required.property "name" Required.string
+          and! age = element |> Required.property "age" Required.int
+          and! status = element |> Required.property "status" Optional.string
+          and! addresses =
+            element |> Required.property "addresses" (Decode.array addressDecoder)
+
+          return {|
+            name = name
+            age = age
+            status = status
+            addresses = addresses
+          |}
+        }
+      let json =
+        """{
+  "name": "John Doe", "age": 30, "status": null,
+  "addresses": [
+    { "city": "New York", "country": "USA", "zipCode": "12345" },
+    { "city": "London", "country": "UK" }
+  ]
+}"""
+
+      let value = Decode.fromString(json, decoder)
+
+      match value with
+      | Ok value ->
+        Assert.AreEqual("John Doe", value.name)
+        Assert.AreEqual(30, value.age)
+        Assert.AreEqual(None, value.status)
+        Assert.AreEqual(2, value.addresses.Length)
+        Assert.AreEqual("New York", value.addresses[0].city)
+        Assert.AreEqual("USA", value.addresses[0].country)
+        Assert.AreEqual("12345", value.addresses[0].zipCode.Value)
+        Assert.AreEqual("London", value.addresses[1].city)
+        Assert.AreEqual("UK", value.addresses[1].country)
+        Assert.AreEqual(None, value.addresses[1].zipCode)
+      | Error err -> Assert.Fail(err.message)
+
