@@ -7,3 +7,5 @@ Just copy and paste the `Library.fs` (while I get the NuGet out) and you're read
 Keep in mind this is not as thoughtful and complete as Thoth.Json, and perhaps a thoth "frontend" can be done using the [Advanced API](https://github.com/thoth-org/Thoth.Json/blob/main/packages/Thoth.Json.Core/Decode.fs#L84)
 
 However I'm in a situation where I need a thoth-like decoder and have to deal with the BCL, so I figured out it was worth trying something out
+
+[Thoth.Json]: https://github.com/thoth-org/Thoth.Json
