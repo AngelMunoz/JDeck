@@ -1,4 +1,4 @@
-﻿namespace JDeck
+namespace JDeck
 
 open System
 open System.IO
@@ -6,84 +6,155 @@ open System.Text.Json
 
 
 
-type Decoder<'T> = JsonElement -> Result<'T, string>
-type DecodeValidated<'T> = JsonElement -> Result<'T, string list>
+type DecodeError = {
+  value: JsonElement
+  kind: JsonValueKind
+  rawValue: string
+  targetType: Type
+  message: string
+  exn: exn option
+  index: int option
+  property: string option
+}
+
+module DecodeError =
+  let inline ofError<'T> (el: JsonElement, message) : DecodeError = {
+    value = el
+    kind = el.ValueKind
+    rawValue = el.GetRawText()
+    targetType = typeof<'T>
+    message = message
+    exn = None
+    index = None
+    property = None
+  }
+
+  let inline ofIndexed<'T> (el: JsonElement, index, message) : DecodeError = {
+    value = el
+    kind = el.ValueKind
+    rawValue = el.GetRawText()
+    targetType = typeof<'T>
+    message = message
+    exn = None
+    index = Some index
+    property = None
+  }
+
+  let withIndex i (error: DecodeError) = { error with index = Some i }
+
+  let withProperty name (error: DecodeError) = {
+    error with
+        property = Some name
+  }
+
+  let withException ex (error: DecodeError) = {
+    error with
+        exn = Some ex
+        message = ex.Message
+  }
+
+  let withMessage message (error: DecodeError) = {
+    error with
+        message = message
+  }
+
+type Decoder<'T> = JsonElement -> Result<'T, DecodeError>
+type IndexedDecoder<'T> = int -> JsonElement -> Result<'T, DecodeError>
+type ValidationDecoder<'T> = JsonElement -> Result<'T, DecodeError list>
+
+
+module Seq =
+  let inline collectErrors ([<InlineIfLambda>] f: int -> Decoder<_>) xs =
+    let values = ResizeArray<_>()
+    let errors = ResizeArray<_>()
+
+    for i, x in Seq.indexed xs do
+      match f i x with
+      | Ok value -> values.Add value
+      | Error error -> errors.Add(error |> DecodeError.withIndex i)
+
+    if errors.Count > 0 then
+      Error(errors |> List.ofSeq)
+    else
+      Ok(values :> seq<_>)
+
+  let inline collectUntilError ([<InlineIfLambda>] f: int -> Decoder<_>) xs =
+    let errors = ResizeArray<_>()
+    let values = ResizeArray<_>()
+    use enumerator = (Seq.indexed xs).GetEnumerator()
+
+    while errors.Count = 0 && enumerator.MoveNext() do
+      let i, x = enumerator.Current
+
+      match f i x with
+      | Ok value -> values.Add value
+      | Error error -> errors.Add(error |> DecodeError.withIndex i)
+
+    if errors.Count > 0 then
+      Error(errors[0])
+    else
+      Ok(values :> seq<_>)
 
 module Decode =
-  // Grabbed these from FsToolkit.ErrorHandling
-  module Seq =
-    /// <summary>
-    /// Applies a function to each element of a sequence and returns a single result
-    /// </summary>
-    /// <param name="state">The initial state</param>
-    /// <param name="f">The function to apply to each element</param>
-    /// <param name="xs">The input sequence</param>
-    /// <returns>A result with the ok elements in a sequence or a sequence of all errors occuring in the original sequence</returns>
-    let inline traverseResultA'
-      state
-      ([<InlineIfLambda>] f: 'okInput -> Result<'okOutput, 'error>)
-      xs
-      =
-      let folder state x =
-        match state, f x with
-        | Error errors, Error e -> Seq.append errors (Seq.singleton e) |> Error
-        | Ok oks, Ok ok -> Seq.append oks (Seq.singleton ok) |> Ok
-        | Ok _, Error e -> Seq.singleton e |> Error
-        | Error _, Ok _ -> state
 
-      Seq.fold folder state xs
+  let inline sequence ([<InlineIfLambda>] decoder: IndexedDecoder<_>) (el: JsonElement) =
+      el.EnumerateArray() |> Seq.collectUntilError decoder
 
-    /// <summary>
-    /// Applies a function to each element of a sequence and returns a single result
-    /// </summary>
-    /// <param name="f">The function to apply to each element</param>
-    /// <param name="xs">The input sequence</param>
-    /// <returns>A result with the ok elements in a sequence or a sequence of all errors occuring in the original sequence</returns>
-    /// <remarks>This function is equivalent to <see cref="traverseResultA'"/> but applying and initial state of 'Seq.empty'</remarks>
-    let traverseResultA f xs = traverseResultA' (Ok Seq.empty) f xs
+  let inline seqTraverse ([<InlineIfLambda>] decoder) (el: JsonElement) =
+    el.EnumerateArray() |> Seq.collectErrors decoder
 
-  let inline sequence
-    ([<InlineIfLambda>] decoder: Decoder<_>)
-    (el: JsonElement)
-    =
-    el.EnumerateArray()
-    |> Seq.traverseResultA decoder
-    |> Result.mapError(String.concat ", ")
-
-  let inline array ([<InlineIfLambda>] decoder: Decoder<_>) (el: JsonElement) =
+  let inline array ([<InlineIfLambda>] decoder) (el: JsonElement) =
     sequence decoder el |> Result.map Array.ofSeq
 
-  let inline list ([<InlineIfLambda>] decoder: Decoder<_>) (el: JsonElement) =
+  let inline arrayTraverse ([<InlineIfLambda>] decoder) (el: JsonElement) =
+    seqTraverse decoder el |> Result.map Array.ofSeq
+
+  let inline list ([<InlineIfLambda>] decoder) (el: JsonElement) =
     sequence decoder el |> Result.map List.ofSeq
+
+  let inline listTraverse ([<InlineIfLambda>] decoder) (el: JsonElement) =
+    seqTraverse decoder el |> Result.map List.ofSeq
 
   module Required =
 
-    let inline internal shell<'T>
+    let inline internal shell
       (valueKind: JsonValueKind)
-      ([<InlineIfLambda>] decoder: Decoder<'T>)
+      ([<InlineIfLambda>] decoder)
       (element: JsonElement)
       =
       try
         match element.ValueKind with
         | kind when kind = valueKind -> decoder element
         | kind ->
-          Error
+          DecodeError.ofError(
+            element.Clone(),
             $"Expected '{Enum.GetName valueKind}' but got `%s{Enum.GetName kind}`"
+          )
+          |> Error
       with ex ->
-        Error ex.Message
-
+        DecodeError.ofError(element.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
 
     let string =
       shell JsonValueKind.String (fun element -> Ok(element.GetString()))
 
-    let boolean (element: JsonElement) =
-      try
-        match element.ValueKind with
-        | JsonValueKind.True
-        | JsonValueKind.False -> Ok(element.GetBoolean())
-        | kind -> Error $"Expected a boolean but got `%s{Enum.GetName kind}`"
-      with ex ->
-        Error ex.Message
+    let boolean =
+      fun (element: JsonElement) ->
+        try
+          match element.ValueKind with
+          | JsonValueKind.True
+          | JsonValueKind.False -> Ok(element.GetBoolean())
+          | kind ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Expected a boolean but got `%s{Enum.GetName kind}`"
+            )
+            |> Error
+        with ex ->
+          DecodeError.ofError(element.Clone(), "")
+          |> DecodeError.withException ex
+          |> Error
 
     let char =
       shell
@@ -92,8 +163,11 @@ module Decode =
           let value = element.GetString()
 
           if value.Length > 1 then
-            Error
-              $"Expecting a char but got %s{element.GetRawText()} of size: %i{value.Length}"
+            DecodeError.ofError<char>(
+              element.Clone(),
+              $"Expecting a char but got a string of size: %i{value.Length}"
+            )
+            |> Error
           else
             Ok value[0]
         )
@@ -104,7 +178,12 @@ module Decode =
         (fun element ->
           match element.TryGetGuid() with
           | true, value -> Ok value
-          | _ -> Error $"Unable to get a guid from '%s{element.GetRawText()}'"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
         )
 
     let unit = shell JsonValueKind.Null (fun _ -> Ok())
@@ -115,7 +194,12 @@ module Decode =
         (fun element ->
           match element.TryGetByte() with
           | true, byte -> Ok byte
-          | _ -> Error $"Unable to get a byte from '%s{element.GetRawText()}'"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get byte from the current value"
+            )
+            |> Error
         )
 
     let int =
@@ -124,7 +208,12 @@ module Decode =
         (fun element ->
           match element.TryGetInt32() with
           | true, value -> Ok value
-          | _ -> Error $"Unable to get an int from '%s{element.GetRawText()}"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get an int from the current value"
+            )
+            |> Error
         )
 
     let int64 =
@@ -133,7 +222,12 @@ module Decode =
         (fun element ->
           match element.TryGetInt64() with
           | true, value -> Ok value
-          | _ -> Error $"Unable to get an int64 from '%s{element.GetRawText()}"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get an int64 from the current value"
+            )
+            |> Error
         )
 
     let float =
@@ -142,7 +236,12 @@ module Decode =
         (fun element ->
           match element.TryGetDouble() with
           | true, value -> Ok value
-          | _ -> Error $"Unable to get a float from '%s{element.GetRawText()}"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a float from the current value"
+            )
+            |> Error
         )
 
     let dateTime =
@@ -152,7 +251,11 @@ module Decode =
           match element.TryGetDateTime() with
           | true, value -> Ok value
           | _ ->
-            Error $"Unable to get a DateTime from '%s{element.GetRawText()}"
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a DateTime from the current value"
+            )
+            |> Error
         )
 
     let dateTimeOffset =
@@ -162,8 +265,11 @@ module Decode =
           match element.TryGetDateTimeOffset() with
           | true, value -> Ok value
           | _ ->
-            Error
-              $"Unable to get a DateTimeOffset from '%s{element.GetRawText()}"
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a DateTimeOffset from the current value"
+            )
+            |> Error
         )
 
     let inline property
@@ -174,13 +280,15 @@ module Decode =
       match element.TryGetProperty name with
       | true, el -> decoder el
       | false, _ ->
-        Error $"Property '%s{name}' not found in: {element.GetRawText()}"
+        DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+        |> DecodeError.withProperty name
+        |> Error
 
   module Optional =
 
-    let inline internal shell<'T>
+    let inline internal shell
       (valueKind: JsonValueKind)
-      ([<InlineIfLambda>] decoder: Decoder<'T>)
+      ([<InlineIfLambda>] decoder)
       (element: JsonElement)
       =
       try
@@ -189,10 +297,15 @@ module Decode =
         | JsonValueKind.Null
         | JsonValueKind.Undefined -> Ok ValueNone
         | kind ->
-          Error
+          DecodeError.ofError(
+            element.Clone(),
             $"Expected '{Enum.GetName valueKind}' but got `%s{Enum.GetName kind}`"
+          )
+          |> Error
       with ex ->
-        Error ex.Message
+        DecodeError.ofError(element.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
 
 
     let string =
@@ -205,9 +318,16 @@ module Decode =
         | JsonValueKind.False -> Ok(ValueSome(element.GetBoolean()))
         | JsonValueKind.Undefined
         | JsonValueKind.Null -> Ok ValueNone
-        | kind -> Error $"Expected a boolean but got `%s{Enum.GetName kind}`"
+        | kind ->
+          DecodeError.ofError(
+            element.Clone(),
+            $"Expected a boolean but got `%s{Enum.GetName kind}`"
+          )
+          |> Error
       with ex ->
-        Error ex.Message
+        DecodeError.ofError(element.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
 
     let char =
       shell
@@ -216,8 +336,11 @@ module Decode =
           let value = element.GetString()
 
           if value.Length > 1 then
-            Error
+            DecodeError.ofError(
+              element.Clone(),
               $"Expecting a char but got a string of size: %i{value.Length}"
+            )
+            |> Error
           else
             Ok value[0]
         )
@@ -228,7 +351,12 @@ module Decode =
         (fun element ->
           match element.TryGetGuid() with
           | true, value -> Ok value
-          | _ -> Error $"Unable to get a guid from '%s{element.GetRawText()}'"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
         )
 
     let unit = shell JsonValueKind.Null (fun _ -> Ok())
@@ -239,7 +367,12 @@ module Decode =
         (fun element ->
           match element.TryGetByte() with
           | true, byte -> Ok byte
-          | _ -> Error $"Unable to get a byte from '%s{element.GetRawText()}'"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
         )
 
     let int =
@@ -248,7 +381,12 @@ module Decode =
         (fun element ->
           match element.TryGetInt32() with
           | true, value -> Ok value
-          | _ -> Error $"Unable to get an int from '%s{element.GetRawText()}"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
         )
 
     let int64 =
@@ -257,7 +395,12 @@ module Decode =
         (fun element ->
           match element.TryGetInt64() with
           | true, value -> Ok value
-          | _ -> Error $"Unable to get an int64 from '%s{element.GetRawText()}"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
         )
 
     let float =
@@ -266,7 +409,12 @@ module Decode =
         (fun element ->
           match element.TryGetDouble() with
           | true, value -> Ok value
-          | _ -> Error $"Unable to get a float from '%s{element.GetRawText()}"
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
         )
 
     let dateTime =
@@ -276,7 +424,12 @@ module Decode =
           match element.TryGetDateTime() with
           | true, value -> Ok value
           | _ ->
-            Error $"Unable to get a DateTime from '%s{element.GetRawText()}"
+
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
         )
 
     let dateTimeOffset =
@@ -286,13 +439,16 @@ module Decode =
           match element.TryGetDateTimeOffset() with
           | true, value -> Ok value
           | _ ->
-            Error
-              $"Unable to get a DateTimeOffset from '%s{element.GetRawText()}"
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
         )
 
     let inline property
       (name: string)
-      ([<InlineIfLambda>] decoder)
+      ([<InlineIfLambda>] decoder: Decoder<_>)
       (element: JsonElement)
       =
       match element.TryGetProperty name with
@@ -300,111 +456,80 @@ module Decode =
       | false, _ -> Ok ValueNone
 
 type Decode =
-  static member fromString(value: string, options, decoder) =
-    try
-      use doc = JsonDocument.Parse(value, options = options)
-      let root = doc.RootElement
-      decoder root
-    with ex ->
-      Error ex.Message
+  static member fromString(value: string, options, decoder: Decoder<_>) =
+    use doc = JsonDocument.Parse(value, options = options)
+    let root = doc.RootElement
+    decoder root
 
   static member fromString(value: string, decoder: Decoder<_>) =
-    try
-      use doc = JsonDocument.Parse(value)
-      let root = doc.RootElement
-      decoder root
-    with ex ->
-      Error ex.Message
+    use doc = JsonDocument.Parse(value)
+    let root = doc.RootElement
+    decoder root
 
   static member fromBytes(value: byte array, options, decoder) =
-    try
-      use doc = JsonDocument.Parse(value, options = options)
-      let root = doc.RootElement
-      decoder root
-    with ex ->
-      Error ex.Message
+    use doc = JsonDocument.Parse(value, options = options)
+    let root = doc.RootElement
+    decoder root
 
   static member fromBytes(value: byte array, decoder: Decoder<_>) =
-    try
-      use doc = JsonDocument.Parse(value)
-      let root = doc.RootElement
-      decoder root
-    with ex ->
-      Error ex.Message
+    use doc = JsonDocument.Parse(value)
+    let root = doc.RootElement
+    decoder root
 
   static member fromStream(value: Stream, options, decoder) = task {
-    try
-      use! doc = JsonDocument.ParseAsync(value, options = options)
-      let root = doc.RootElement
-      return decoder root
-    with ex ->
-      return Error ex.Message
+    use! doc = JsonDocument.ParseAsync(value, options = options)
+    let root = doc.RootElement
+    return decoder root
   }
 
   static member fromStream(value: Stream, decoder: Decoder<_>) = task {
-    try
-      use! doc = JsonDocument.ParseAsync(value)
-      let root = doc.RootElement
-      return decoder root
-    with ex ->
-      return Error ex.Message
+    use! doc = JsonDocument.ParseAsync(value)
+    let root = doc.RootElement
+    return decoder root
   }
 
-  // Allow validations too
-
-  static member fromString
-    (value: string, options, decoder: DecodeValidated<_>)
+  static member validateFromString
+    (value: string, options, decoder: ValidationDecoder<_>)
     =
-    try
-      use doc = JsonDocument.Parse(value, options = options)
-      let root = doc.RootElement
-      decoder root
-    with ex ->
-      Error [ ex.Message ]
+    use doc = JsonDocument.Parse(value, options = options)
+    let root = doc.RootElement
+    decoder root
 
-  static member fromString(value: string, decoder: DecodeValidated<_>) =
-    try
-      use doc = JsonDocument.Parse(value)
-      let root = doc.RootElement
-      decoder root
-    with ex ->
-      Error [ ex.Message ]
-
-  static member fromBytes
-    (value: byte array, options, decoder: DecodeValidated<_>)
+  static member validateFromString
+    (value: string, decoder: ValidationDecoder<_>)
     =
-    try
-      use doc = JsonDocument.Parse(value, options = options)
-      let root = doc.RootElement
-      decoder root
-    with ex ->
-      Error [ ex.Message ]
+    use doc = JsonDocument.Parse(value)
+    let root = doc.RootElement
+    decoder root
 
-  static member fromBytes(value: byte array, decoder: DecodeValidated<_>) =
-    try
-      use doc = JsonDocument.Parse(value)
-      let root = doc.RootElement
-      decoder root
-    with ex ->
-      Error [ ex.Message ]
+  static member validateFromBytes
+    (value: byte array, options, decoder: ValidationDecoder<_>)
+    =
+    use doc = JsonDocument.Parse(value, options = options)
+    let root = doc.RootElement
+    decoder root
 
-  static member fromStream
-    (value: Stream, options, decoder: DecodeValidated<_>)
+  static member validateFromBytes
+    (value: byte array, decoder: ValidationDecoder<_>)
+    =
+    use doc = JsonDocument.Parse(value)
+    let root = doc.RootElement
+    decoder root
+
+  static member validateFromStream
+    (value: Stream, options, decoder: ValidationDecoder<_>)
     =
     task {
-      try
-        use! doc = JsonDocument.ParseAsync(value, options = options)
-        let root = doc.RootElement
-        return decoder root
-      with ex ->
-        return Error [ ex.Message ]
+      use! doc = JsonDocument.ParseAsync(value, options = options)
+      let root = doc.RootElement
+      return decoder root
     }
 
-  static member fromStream(value: Stream, decoder: DecodeValidated<_>) = task {
-    try
+  static member validateFromStream
+    (value: Stream, decoder: ValidationDecoder<_>)
+    =
+    task {
       use! doc = JsonDocument.ParseAsync(value)
       let root = doc.RootElement
       return decoder root
-    with ex ->
-      return Error [ ex.Message ]
-  }
+    }
