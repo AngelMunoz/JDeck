@@ -18,22 +18,22 @@ type DecodeError = {
 }
 
 module DecodeError =
-  let inline ofError<'T> (el: JsonElement, message) : DecodeError = {
+  let inline ofError<'TResult> (el: JsonElement, message) : DecodeError = {
     value = el
     kind = el.ValueKind
     rawValue = el.GetRawText()
-    targetType = typeof<'T>
+    targetType = typeof<'TResult>
     message = message
     exn = None
     index = None
     property = None
   }
 
-  let inline ofIndexed<'T> (el: JsonElement, index, message) : DecodeError = {
+  let inline ofIndexed<'TResult> (el: JsonElement, index, message) : DecodeError = {
     value = el
     kind = el.ValueKind
     rawValue = el.GetRawText()
-    targetType = typeof<'T>
+    targetType = typeof<'TResult>
     message = message
     exn = None
     index = Some index
@@ -58,9 +58,9 @@ module DecodeError =
         message = message
   }
 
-type Decoder<'T> = JsonElement -> Result<'T, DecodeError>
-type IndexedDecoder<'T> = int -> JsonElement -> Result<'T, DecodeError>
-type ValidationDecoder<'T> = JsonElement -> Result<'T, DecodeError list>
+type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
+type IndexedDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeError>
+type ValidationDecoder<'TResult> = JsonElement -> Result<'TResult, DecodeError list>
 
 
 module Seq =
@@ -293,9 +293,9 @@ module Decode =
       =
       try
         match element.ValueKind with
-        | kind when kind = valueKind -> decoder element |> Result.map ValueSome
+        | kind when kind = valueKind -> decoder element |> Result.map Some
         | JsonValueKind.Null
-        | JsonValueKind.Undefined -> Ok ValueNone
+        | JsonValueKind.Undefined -> Ok None
         | kind ->
           DecodeError.ofError(
             element.Clone(),
@@ -315,9 +315,9 @@ module Decode =
       try
         match element.ValueKind with
         | JsonValueKind.True
-        | JsonValueKind.False -> Ok(ValueSome(element.GetBoolean()))
+        | JsonValueKind.False -> Ok(Some(element.GetBoolean()))
         | JsonValueKind.Undefined
-        | JsonValueKind.Null -> Ok ValueNone
+        | JsonValueKind.Null -> Ok None
         | kind ->
           DecodeError.ofError(
             element.Clone(),
@@ -456,67 +456,67 @@ module Decode =
       | false, _ -> Ok ValueNone
 
 type Decode =
-  static member fromString(value: string, options, decoder: Decoder<_>) =
+  static member inline fromString(value: string, options, decoder: Decoder<_>) =
     use doc = JsonDocument.Parse(value, options = options)
     let root = doc.RootElement
     decoder root
 
-  static member fromString(value: string, decoder: Decoder<_>) =
+  static member inline fromString(value: string, decoder: Decoder<_>) =
     use doc = JsonDocument.Parse(value)
     let root = doc.RootElement
     decoder root
 
-  static member fromBytes(value: byte array, options, decoder) =
+  static member inline fromBytes(value: byte array, options, decoder) =
     use doc = JsonDocument.Parse(value, options = options)
     let root = doc.RootElement
     decoder root
 
-  static member fromBytes(value: byte array, decoder: Decoder<_>) =
+  static member inline fromBytes(value: byte array, decoder: Decoder<_>) =
     use doc = JsonDocument.Parse(value)
     let root = doc.RootElement
     decoder root
 
-  static member fromStream(value: Stream, options, decoder) = task {
+  static member inline fromStream(value: Stream, options, decoder) = task {
     use! doc = JsonDocument.ParseAsync(value, options = options)
     let root = doc.RootElement
     return decoder root
   }
 
-  static member fromStream(value: Stream, decoder: Decoder<_>) = task {
+  static member inline fromStream(value: Stream, decoder: Decoder<_>) = task {
     use! doc = JsonDocument.ParseAsync(value)
     let root = doc.RootElement
     return decoder root
   }
 
-  static member validateFromString
+  static member inline validateFromString
     (value: string, options, decoder: ValidationDecoder<_>)
     =
     use doc = JsonDocument.Parse(value, options = options)
     let root = doc.RootElement
     decoder root
 
-  static member validateFromString
+  static member inline validateFromString
     (value: string, decoder: ValidationDecoder<_>)
     =
     use doc = JsonDocument.Parse(value)
     let root = doc.RootElement
     decoder root
 
-  static member validateFromBytes
+  static member inline validateFromBytes
     (value: byte array, options, decoder: ValidationDecoder<_>)
     =
     use doc = JsonDocument.Parse(value, options = options)
     let root = doc.RootElement
     decoder root
 
-  static member validateFromBytes
+  static member inline validateFromBytes
     (value: byte array, decoder: ValidationDecoder<_>)
     =
     use doc = JsonDocument.Parse(value)
     let root = doc.RootElement
     decoder root
 
-  static member validateFromStream
+  static member inline validateFromStream
     (value: Stream, options, decoder: ValidationDecoder<_>)
     =
     task {
@@ -525,7 +525,7 @@ type Decode =
       return decoder root
     }
 
-  static member validateFromStream
+  static member inline validateFromStream
     (value: Stream, decoder: ValidationDecoder<_>)
     =
     task {
