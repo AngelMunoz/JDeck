@@ -26,6 +26,7 @@ type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
 type IndexedDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeError>
 type ValidationDecoder<'TResult> = JsonElement -> Result<'TResult, DecodeError list>
 
+[<AutoOpen>]
 module Decode =
   module Decode =
     val inline sequence:
@@ -36,6 +37,10 @@ module Decode =
 
     val inline list:
       [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult list, DecodeError>
+
+    val oneOf: decoders: Decoder<'TResult> seq -> Decoder<'TResult>
+
+    val collectOneOf: decoders: Decoder<'TResult> seq -> element: JsonElement -> Result<'TResult, DecodeError list>
 
   module Required =
 
@@ -149,6 +154,141 @@ module Decode =
       [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
       JsonElement ->
         Result<'TResult array option, DecodeError list>
+
+module Builders =
+  [<Class>]
+  type DecodeBuilder =
+    member inline Bind:
+      value: Result<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> Result<'TResult, DecodeError>) ->
+        Result<'TResult, DecodeError>
+
+    member inline Source: result: Result<'TResult, DecodeError> -> Result<'TResult, DecodeError>
+
+    member inline Return: value: 'TResult -> Result<'TResult, DecodeError>
+
+    member inline ReturnFrom: value: Result<'TResult, DecodeError> -> Result<'TResult, DecodeError>
+
+    member inline BindReturn:
+      value: Result<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> 'TResult) -> Result<'TResult, DecodeError>
+
+    member inline Zero: unit -> Result<unit, DecodeError>
+
+    member inline Delay:
+      [<InlineIfLambda>] generator: (unit -> Result<'TValue, DecodeError>) -> (unit -> Result<'TValue, DecodeError>)
+
+    member inline Run:
+      [<InlineIfLambda>] generator: (unit -> Result<'TResult, DecodeError>) -> Result<'TResult, DecodeError>
+
+    member inline Combine:
+      value: Result<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> Result<'TResult, DecodeError>) ->
+        Result<'TResult, DecodeError>
+
+
+    member inline TryFinally:
+      [<InlineIfLambda>] generator: (unit -> Result<'TResult, DecodeError>) *
+      [<InlineIfLambda>] compensation: (unit -> unit) ->
+        Result<'TResult, DecodeError>
+
+    member inline Using<'disposable, 'TResult when 'disposable :> IDisposable> :
+      resource: 'disposable * [<InlineIfLambda>] binder: ('disposable -> Result<'TResult, DecodeError>) ->
+        Result<'TResult, DecodeError>
+
+    member inline MergeSources:
+      r1: Result<'TValue1, 'error> * r2: Result<'TValue2, 'error> -> Result<'TValue1 * 'TValue2, 'error>
+
+    member inline MergeSources3:
+      r1: Result<'TValue1, 'error> * r2: Result<'TValue2, 'error> * r3: Result<'TValue3, 'error> ->
+        Result<'TValue1 * 'TValue2 * 'TValue3, 'error>
+
+    member inline MergeSources4:
+      r1: Result<'TValue1, 'error> *
+      r2: Result<'TValue2, 'error> *
+      r3: Result<'TValue3, 'error> *
+      r4: Result<'TValue4, 'error> ->
+        Result<'TValue1 * 'TValue2 * 'TValue3 * 'TValue4, 'error>
+
+    member inline MergeSources5:
+      r1: Result<'TValue1, 'error> *
+      r2: Result<'TValue2, 'error> *
+      r3: Result<'TValue3, 'error> *
+      r4: Result<'TValue4, 'error> *
+      r5: Result<'TValue5, 'error> ->
+        Result<'TValue1 * 'TValue2 * 'TValue3 * 'TValue4 * 'TValue5, 'error>
+
+  type ResultCollect<'ok, 'error> = Result<'ok, 'error list>
+
+  [<Class>]
+  type DecodeCollectBuilder =
+    member inline Bind:
+      value: ResultCollect<'TValue, DecodeError> *
+      [<InlineIfLambda>] f: ('TValue -> ResultCollect<'TResult, DecodeError>) ->
+        ResultCollect<'TResult, DecodeError>
+
+    member inline Source: result: ResultCollect<'TResult, DecodeError> -> ResultCollect<'TResult, DecodeError>
+
+    member inline Return: value: 'TResult -> ResultCollect<'TResult, DecodeError>
+
+    member inline ReturnFrom: value: ResultCollect<'TResult, DecodeError> -> ResultCollect<'TResult, DecodeError>
+
+    member inline BindReturn:
+      value: ResultCollect<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> 'TResult) ->
+        ResultCollect<'TResult, DecodeError>
+
+    member inline Zero: unit -> ResultCollect<unit, DecodeError>
+
+    member inline Delay:
+      [<InlineIfLambda>] generator: (unit -> ResultCollect<'TValue, DecodeError>) ->
+        (unit -> ResultCollect<'TValue, DecodeError>)
+
+    member inline Run:
+      [<InlineIfLambda>] generator: (unit -> ResultCollect<'TResult, DecodeError>) ->
+        ResultCollect<'TResult, DecodeError>
+
+    member inline Combine:
+      value: ResultCollect<'TValue, DecodeError> *
+      [<InlineIfLambda>] f: ('TValue -> ResultCollect<'TResult, DecodeError>) ->
+        ResultCollect<'TResult, DecodeError>
+
+    member inline TryFinally:
+      [<InlineIfLambda>] generator: (unit -> ResultCollect<'TResult, DecodeError>) *
+      [<InlineIfLambda>] compensation: (unit -> unit) ->
+        ResultCollect<'TResult, DecodeError>
+
+    member inline Using<'disposable, 'TResult when 'disposable :> IDisposable> :
+      resource: 'disposable * [<InlineIfLambda>] binder: ('disposable -> ResultCollect<'TResult, DecodeError>) ->
+        ResultCollect<'TResult, DecodeError>
+
+    member inline MergeSources:
+      r1: ResultCollect<'TValue1, 'error> * r2: ResultCollect<'TValue2, 'error> ->
+        ResultCollect<'TValue1 * 'TValue2, 'error>
+
+    member inline MergeSources3:
+      r1: ResultCollect<'TValue1, 'error> * r2: ResultCollect<'TValue2, 'error> * r3: ResultCollect<'TValue3, 'error> ->
+        ResultCollect<'TValue1 * 'TValue2 * 'TValue3, 'error>
+
+    member inline MergeSources4:
+      r1: ResultCollect<'TValue1, 'error> *
+      r2: ResultCollect<'TValue2, 'error> *
+      r3: ResultCollect<'TValue3, 'error> *
+      r4: ResultCollect<'TValue4, 'error> ->
+        ResultCollect<'TValue1 * 'TValue2 * 'TValue3 * 'TValue4, 'error>
+
+    member inline MergeSources5:
+      r1: ResultCollect<'TValue1, 'error> *
+      r2: ResultCollect<'TValue2, 'error> *
+      r3: ResultCollect<'TValue3, 'error> *
+      r4: ResultCollect<'TValue4, 'error> *
+      r5: ResultCollect<'TValue5, 'error> ->
+        ResultCollect<'TValue1 * 'TValue2 * 'TValue3 * 'TValue4 * 'TValue5, 'error>
+
+  val decode: DecodeBuilder
+  val decodeCollect: DecodeCollectBuilder
+
+  [<AutoOpen>]
+  module BuilderExtensions =
+
+    type DecodeCollectBuilder with
+      member inline Source: result: Result<'TResult, DecodeError> -> ResultCollect<'TResult, DecodeError>
 
 [<Class>]
 type Decode =
