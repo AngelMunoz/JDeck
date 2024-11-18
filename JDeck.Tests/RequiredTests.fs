@@ -214,7 +214,7 @@ type RequiredTests() =
         and! age = element |> Required.property "age" Required.int
 
         and! addresses =
-          element |> Required.collectArrayProperty "addresses" addressDecoder
+          element |> Required.arrayProperty "addresses" addressDecoder
 
         return {|
           name = name
@@ -259,7 +259,7 @@ type RequiredTests() =
       let! name = element |> Required.property "name" Required.string
       and! age = element |> Required.property "age" Required.int
 
-      and! addresses = element |> Required.arrayProperty "addresses" addressDecoder
+      and! addresses = element |> Required.collectArrayProperty "addresses" addressDecoder
 
       return {|
         name = name

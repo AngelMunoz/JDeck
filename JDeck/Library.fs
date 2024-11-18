@@ -301,12 +301,10 @@ module Decode =
       (element: JsonElement)
       =
       match element.TryGetProperty name with
-      | true, el -> Decode.seqTraverse decoder el
+      | true, el -> Decode.sequence decoder el
       | false, _ ->
-        [
-          DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
-          |> DecodeError.withProperty name
-        ]
+        DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+        |> DecodeError.withProperty name
         |> Error
 
     let inline listProperty
@@ -326,7 +324,7 @@ module Decode =
     let inline collectSeqProperty
       (name: string)
       ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError>)
+        int -> JsonElement -> Result<'TValue, DecodeError list>)
       (element: JsonElement)
       =
       match element.TryGetProperty name with
@@ -337,7 +335,7 @@ module Decode =
         for i, x in el.EnumerateArray() |> Seq.indexed do
           match decoder i x with
           | Ok value -> values.Add value
-          | Error error -> errors.Add error
+          | Error error -> errors.AddRange error
 
         if errors.Count > 0 then
           Error(errors |> List.ofSeq)
@@ -353,7 +351,7 @@ module Decode =
     let inline collectArrayProperty
       (name: string)
       ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError>)
+        int -> JsonElement -> Result<'TValue, DecodeError list>)
       (element: JsonElement)
       =
       collectSeqProperty name decoder element |> Result.map Array.ofSeq
@@ -361,7 +359,7 @@ module Decode =
     let inline collectListProperty
       (name: string)
       ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError>)
+        int -> JsonElement -> Result<'TValue, DecodeError list>)
       (element: JsonElement)
       =
       collectSeqProperty name decoder element |> Result.map List.ofSeq
@@ -540,11 +538,11 @@ module Decode =
 
     let inline seqProperty
       (name: string)
-      ([<InlineIfLambda>] decoder)
+      ([<InlineIfLambda>] decoder: int -> JsonElement -> Result<'TResult, DecodeError>)
       (element: JsonElement)
       =
       match element.TryGetProperty name with
-      | true, el -> Decode.seqTraverse decoder el |> Result.map Some
+      | true, el -> Decode.sequence decoder el |> Result.map Some
       | false, _ -> Ok None
 
     let inline listProperty
@@ -574,7 +572,7 @@ module Decode =
     let inline collectSeqProperty
       (name: string)
       ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError>)
+        int -> JsonElement -> Result<'TValue, DecodeError list>)
       (element: JsonElement)
       =
       match element.TryGetProperty name with
@@ -585,7 +583,7 @@ module Decode =
         for i, x in el.EnumerateArray() |> Seq.indexed do
           match decoder i x with
           | Ok value -> values.Add value
-          | Error error -> errors.Add error
+          | Error error -> errors.AddRange error
 
         if errors.Count > 0 then
           Error(errors |> List.ofSeq)
@@ -601,7 +599,7 @@ module Decode =
     let inline collectArrayProperty
       (name: string)
       ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError>)
+        int -> JsonElement -> Result<'TValue, DecodeError list>)
       (element: JsonElement)
       =
       collectSeqProperty name decoder element
@@ -614,7 +612,7 @@ module Decode =
     let inline collectListProperty
       (name: string)
       ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError>)
+        int -> JsonElement -> Result<'TValue, DecodeError list>)
       (element: JsonElement)
       =
       collectSeqProperty name decoder element
