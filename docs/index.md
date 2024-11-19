@@ -20,13 +20,13 @@ type Person = {
   Age: int
   Emails: string list
 }
-let json = """{"name": "Alice", "age": 30, emails: ["alice@name.com", "alice@age.com"] }"""
+let json = """{"name": "Alice", "age": 30, "emails": ["alice@name.com", "alice@age.com"] }"""
 
 let result: Result<Person, DecodeError> = Decoding.auto(json)
 
 match result with
-| Ok person -> printfn "Person: %A" person
-| Error err -> printfn "Error: %A" err
+| Ok person -> printfn $"Person: %A{person}"
+| Error err -> printfn $"Error: %A{err}"
 ```
 
 In cases where the data is inconclusive, you deserialize Discriminated Unions or does not play well with F# immutability, you can create a manual decoder.
@@ -46,18 +46,18 @@ type ServerResponse = { Data: Person; Message: string }
 
 module Person =
   let Decoder person = decode {
-    let! name = Required.Property.get("name", Optional.string)
-    and! age = Required.Property.get("name", Required.string)
-    and! emails = Required.Property.list("emails", Optional.string)
+    let! name = person |> Required.Property.get("name", Optional.string)
+    and! age = person |> Required.Property.get("name", Required.int)
+    and! emails = person |> Required.Property.list("emails", Optional.string)
     return {
       Name = name |> Option.defaultValue "<missing name>"
       Age = age
-      // Remove any optional value from the array
-      Emails = emails |> Array.choose id
+      // Remove any optional value from the list
+      Emails = emails |> List.choose id
     }
   }
 // Inconclusive data coming from the server
-let person = """{"name": null, "age": 30, emails: ["alice@name.com", "alice@age.com", null] }"""
+let person = """{"name": null, "age": 30, "emails": ["alice@name.com", "alice@age.com", null] }"""
 
 let result: Result<ServerResponse, DecodeError> =
   // ServerResponse will decode automatically while Person will use the custom decoder
@@ -67,9 +67,9 @@ let result: Result<ServerResponse, DecodeError> =
     JsonSerializerOptions() |> Decode.useDecoder Person.Decoder
   )
 
- match result with
- | Ok person -> printfn "Person: %A" person
- | Error err -> printfn "Error: %A" err
+match result with
+| Ok person -> printfn $"Person: %A{person}"
+| Error err -> printfn $"Error: %A{err}"
 ```
 
 
