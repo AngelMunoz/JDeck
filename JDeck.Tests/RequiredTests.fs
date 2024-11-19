@@ -4,7 +4,6 @@ open System
 open Microsoft.VisualStudio.TestTools.UnitTesting
 
 open JDeck
-open JDeck.Decode
 open FsToolkit.ErrorHandling
 
 

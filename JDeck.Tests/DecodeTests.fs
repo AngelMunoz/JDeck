@@ -1,6 +1,5 @@
 ﻿namespace JDeck.Tests
 
-open System
 open Microsoft.VisualStudio.TestTools.UnitTesting
 
 open JDeck
@@ -37,8 +36,6 @@ type DecodeTests() =
 
   [<TestMethod>]
   member _.``JDeck can use oneOf to decode unions``() =
-    let sample = """{ "a": "string"; "b": 1; "c": true }"""
-
     let aDecoder value =
       match Required.string value with
       | Ok value -> Ok(A value)

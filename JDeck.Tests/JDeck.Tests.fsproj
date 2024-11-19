@@ -1,32 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <IsPackable>false</IsPackable>
-        <GenerateProgramFile>false</GenerateProgramFile>
-        <IsTestProject>true</IsTestProject>
-        <Nullable>enable</Nullable>
-        <LangVersion>preview</LangVersion>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <Compile Include="RequiredTests.fs" />
-        <Compile Include="OptionalTests.fs" />
-        <Compile Include="DecodeTests.fs" />
-        <Compile Include="DecodeBuilderTests.fs" />
-        <Compile Include="Program.fs"/>
-    </ItemGroup>
+  <ItemGroup>
+    <Compile Include="RequiredTests.fs"/>
+    <Compile Include="OptionalTests.fs"/>
+    <Compile Include="DecodeTests.fs"/>
+    <Compile Include="DecodeBuilderTests.fs"/>
+    <Compile Include="Program.fs"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0"/>
-        <PackageReference Include="MSTest.TestAdapter" Version="3.0.4"/>
-        <PackageReference Include="MSTest.TestFramework" Version="3.0.4"/>
-        <PackageReference Include="coverlet.collector" Version="6.0.0"/>
-        <PackageReference Include="FsToolkit.ErrorHandling" Version="4.18.0" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0"/>
+    <PackageReference Include="MSTest.TestAdapter" Version="3.0.4"/>
+    <PackageReference Include="MSTest.TestFramework" Version="3.0.4"/>
+    <PackageReference Include="coverlet.collector" Version="6.0.0"/>
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="4.18.0"/>
+  </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\JDeck\JDeck.fsproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JDeck\JDeck.fsproj"/>
+  </ItemGroup>
 
 </Project>

@@ -1,11 +1,9 @@
 ﻿namespace JDeck.Tests
 
-open System
 open System.Text.Json
 open Microsoft.VisualStudio.TestTools.UnitTesting
 
 open JDeck
-open JDeck.Builders
 
 [<TestClass>]
 type DecodeBuilderTests() =
@@ -31,7 +29,7 @@ type DecodeBuilderTests() =
     let personDecoder element = decode {
       let! name = element |> Required.Property.get("name", Required.string)
       let! age = element |> Required.Property.get("age", Required.int)
-      let! email = Optional.Property.get("email", Required.string) element
+      let! email = Optional.Property.get ("email", Required.string) element
 
       return {|
         name = name
@@ -55,16 +53,16 @@ type DecodeBuilderTests() =
     let personDecoder element = decode {
       let! name = Required.Property.get ("name", Required.string) element
       and! age = Required.Property.get ("age", Required.int) element
-      and! email = Optional.Property.get("email", Required.string) element
-      and! city = Optional.Property.get("city", Required.string) element
+      and! email = Optional.Property.get ("email", Required.string) element
+      and! city = Optional.Property.get ("city", Required.string) element
       and! country = Required.Property.get ("country", Required.string) element
-      and! phone = Optional.Property.get("phone", Required.string) element
-      and! address = Optional.Property.get("address", Required.string) element
+      and! phone = Optional.Property.get ("phone", Required.string) element
+      and! address = Optional.Property.get ("address", Required.string) element
 
       and! postalCode =
         Required.Property.get ("postalCode", Optional.string) element
 
-      and! street = Optional.Property.get("street", Required.string) element
+      and! street = Optional.Property.get ("street", Required.string) element
 
       return {|
         name = name
