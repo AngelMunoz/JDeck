@@ -762,7 +762,7 @@ module Builders =
 
   let decode = DecodeBuilder()
 
-type Decode =
+type Decoding =
   static member inline fromString(value: string, options, decoder: Decoder<_>) =
     use doc = JsonDocument.Parse(value, options = options)
     let root = doc.RootElement

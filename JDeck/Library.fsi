@@ -487,7 +487,7 @@ module Builders =
   val decode: DecodeBuilder
 
 [<Class>]
-type Decode =
+type Decoding =
   /// <summary>
   /// Attempts to decode a JSON string using a <see cref="System.Text.Json.JsonDocument">JsonDocument</see> instance.
   /// Without any decoder, works just like `JsonSerializer.Deserialize(json)`.

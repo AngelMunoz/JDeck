@@ -22,7 +22,7 @@ type Person = {
 }
 let json = """{"name": "Alice", "age": 30, emails: ["alice@name.com", "alice@age.com"] }"""
 
-let result: Result<Person, DecodeError> = Decode.auto(json)
+let result: Result<Person, DecodeError> = Decoding.auto(json)
 
 match result with
 | Ok person -> printfn "Person: %A" person
@@ -61,7 +61,7 @@ let person = """{"name": null, "age": 30, emails: ["alice@name.com", "alice@age.
 
 let result: Result<ServerResponse, DecodeError> =
   // ServerResponse will decode automatically while Person will use the custom decoder
-  Decode.auto(
+  Decoding.auto(
     $$"""{ "data": {{person}}, "message": "Success" }""",
     // Include your own decoder
     JsonSerializerOptions() |> Decode.useDecoder Person.Decoder

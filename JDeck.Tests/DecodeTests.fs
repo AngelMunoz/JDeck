@@ -11,12 +11,12 @@ type UnionSample =
 
 
 [<TestClass>]
-type DecodeTests() =
+type DecodingTests() =
 
   [<TestMethod>]
   member _.``JDeck sequence can decode sequences``() =
     match
-      Decode.fromString("[1,2,3]", Decode.array(fun _ el -> Required.int el))
+      Decoding.fromString("[1,2,3]", Decode.array(fun _ el -> Required.int el))
     with
     | Ok value -> Seq.iteri (fun i v -> Assert.AreEqual(i + 1, v)) value
     | Error err -> Assert.Fail(err.message)
@@ -24,7 +24,7 @@ type DecodeTests() =
   [<TestMethod>]
   member _.``JDeck sequence can decode sequences with null values``() =
     match
-      Decode.fromString("[1,null,3]", Decode.array(fun _ el -> Optional.int el))
+      Decoding.fromString("[1,null,3]", Decode.array(fun _ el -> Optional.int el))
     with
     | Ok value ->
       let values = Seq.toArray value
@@ -57,7 +57,7 @@ type DecodeTests() =
         (Decode.oneOf [ cDecoder; bDecoder; aDecoder ])
       )
 
-    match Decode.fromString("""{ "value": "string" }""", unionDecoder) with
+    match Decoding.fromString("""{ "value": "string" }""", unionDecoder) with
     | Ok(A value) -> Assert.AreEqual("string", value)
     | Ok _ -> Assert.Fail()
     | Error err -> Assert.Fail(err.message)
@@ -68,7 +68,7 @@ type DecodeTests() =
         (Decode.oneOf [ aDecoder; cDecoder; bDecoder ])
       )
 
-    match Decode.fromString("""{ "value": 1 }""", unionDecoder) with
+    match Decoding.fromString("""{ "value": 1 }""", unionDecoder) with
     | Ok(B value) -> Assert.AreEqual(1, value)
     | Ok _ -> Assert.Fail()
     | Error err -> Assert.Fail(err.message)
@@ -79,7 +79,7 @@ type DecodeTests() =
         (Decode.oneOf [ aDecoder; bDecoder; cDecoder ])
       )
 
-    match Decode.fromString("""{ "value": true }""", unionDecoder) with
+    match Decoding.fromString("""{ "value": true }""", unionDecoder) with
     | Ok(C value) -> Assert.AreEqual(true, value)
     | Ok _ -> Assert.Fail()
     | Error err -> Assert.Fail(err.message)

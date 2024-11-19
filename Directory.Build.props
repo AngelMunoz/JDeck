@@ -11,7 +11,7 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
     <LangVersion>preview</LangVersion>
     <Nullable>true</Nullable>
-    <Version>1.0.0-beta-001</Version>
+    <Version>1.0.0-beta-002</Version>
   </PropertyGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)\LICENSE" Pack="true" PackagePath="\"/>

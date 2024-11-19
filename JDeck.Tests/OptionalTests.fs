@@ -11,91 +11,91 @@ type OptionalTests() =
 
   [<TestMethod>]
   member _.``JDeck does not fail on null strings``() =
-    match Decode.fromString("null", Optional.string) with
+    match Decoding.fromString("null", Optional.string) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null booleans``() =
-    match Decode.fromString("null", Optional.boolean) with
+    match Decoding.fromString("null", Optional.boolean) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null characters``() =
-    match Decode.fromString("null", Optional.char) with
+    match Decoding.fromString("null", Optional.char) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null guids``() =
-    match Decode.fromString("null", Optional.guid) with
+    match Decoding.fromString("null", Optional.guid) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null units``() =
-    match Decode.fromString("null", Optional.unit) with
+    match Decoding.fromString("null", Optional.unit) with
     | Ok(Some value) -> Assert.AreEqual((), value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null bytes``() =
-    match Decode.fromString("null", Optional.byte) with
+    match Decoding.fromString("null", Optional.byte) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null ints``() =
-    match Decode.fromString("null", Optional.int) with
+    match Decoding.fromString("null", Optional.int) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null int64s``() =
-    match Decode.fromString("null", Optional.int64) with
+    match Decoding.fromString("null", Optional.int64) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null floats``() =
-    match Decode.fromString("null", Optional.float) with
+    match Decoding.fromString("null", Optional.float) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null DateTimes``() =
-    match Decode.fromString("null", Optional.dateTime) with
+    match Decoding.fromString("null", Optional.dateTime) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck does not fail on null DateTimeOffsets``() =
-    match Decode.fromString("null", Optional.dateTimeOffset) with
+    match Decoding.fromString("null", Optional.dateTimeOffset) with
     | Ok(Some _) -> Assert.Fail("Expected None but got a value")
     | Ok None -> ()
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode false as boolean``() =
-    match Decode.fromString("false", Optional.boolean) with
+    match Decoding.fromString("false", Optional.boolean) with
     | Ok(Some value) -> Assert.IsFalse value
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode characters``() =
-    match Decode.fromString("\"a\"", Optional.char) with
+    match Decoding.fromString("\"a\"", Optional.char) with
     | Ok(Some value) -> Assert.AreEqual('a', value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
@@ -104,7 +104,7 @@ type OptionalTests() =
   member _.``JDeck fails to decode characters when strings are longer than 1``
     ()
     =
-    match Decode.fromString("\"ab\"", Optional.char) with
+    match Decoding.fromString("\"ab\"", Optional.char) with
     | Ok _ -> Assert.Fail()
     | Error err ->
       Assert.AreEqual(
@@ -116,42 +116,42 @@ type OptionalTests() =
   member _.``JDeck can parse guids``() =
     let expected = Guid.NewGuid()
 
-    match Decode.fromString($"\"{expected}\"", Optional.guid) with
+    match Decoding.fromString($"\"{expected}\"", Optional.guid) with
     | Ok(Some actual) -> Assert.AreEqual(expected, actual)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can parse nulls as unit``() =
-    match Decode.fromString("null", Optional.unit) with
+    match Decoding.fromString("null", Optional.unit) with
     | Ok(Some actual) -> Assert.AreEqual((), actual)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode bytes``() =
-    match Decode.fromString("10", Optional.byte) with
+    match Decoding.fromString("10", Optional.byte) with
     | Ok(Some value) -> Assert.AreEqual(10uy, value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode ints``() =
-    match Decode.fromString("10", Optional.int) with
+    match Decoding.fromString("10", Optional.int) with
     | Ok(Some value) -> Assert.AreEqual(10, value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode int64s``() =
-    match Decode.fromString("10", Optional.int64) with
+    match Decoding.fromString("10", Optional.int64) with
     | Ok(Some value) -> Assert.AreEqual(10L, value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode floats``() =
-    match Decode.fromString("10.0", Optional.float) with
+    match Decoding.fromString("10.0", Optional.float) with
     | Ok(Some value) -> Assert.AreEqual(10.0, value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
@@ -160,7 +160,7 @@ type OptionalTests() =
   member _.``JDeck can decode DateTimes``() =
     let expected = DateTime.Now
 
-    match Decode.fromString($"\"{expected:O}\"", Optional.dateTime) with
+    match Decoding.fromString($"\"{expected:O}\"", Optional.dateTime) with
     | Ok(Some actual) -> Assert.AreEqual(expected, actual)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
@@ -169,7 +169,7 @@ type OptionalTests() =
   member _.``JDeck can decode DateTimeOffsets``() =
     let expected = DateTimeOffset.Now
 
-    match Decode.fromString($"\"{expected:O}\"", Optional.dateTimeOffset) with
+    match Decoding.fromString($"\"{expected:O}\"", Optional.dateTimeOffset) with
     | Ok(Some actual) -> Assert.AreEqual(expected, actual)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
@@ -185,7 +185,7 @@ type OptionalTests() =
         return {| value = value |}
       }
 
-    match Decode.fromString(json, valueDecoder) with
+    match Decoding.fromString(json, valueDecoder) with
     | Ok value -> Assert.AreEqual(None, value.value)
     | Error err -> Assert.Fail(err.message)
 
@@ -200,7 +200,7 @@ type OptionalTests() =
         return {| value = value |}
       }
 
-    match Decode.fromString(json, valueDecoder) with
+    match Decoding.fromString(json, valueDecoder) with
     | Ok value -> Assert.AreEqual(None, value.value)
     | Error err -> Assert.Fail(err.message)
 
@@ -215,7 +215,7 @@ type OptionalTests() =
         return value
       }
 
-    match Decode.fromString(json, Decode.array valueDecoder) with
+    match Decoding.fromString(json, Decode.array valueDecoder) with
     | Ok value -> Assert.AreEqual(None, value[0])
     | Error err -> Assert.Fail(err.message)
 
@@ -230,7 +230,7 @@ type OptionalTests() =
         return value
       }
 
-    match Decode.fromString(json, Decode.array valueDecoder) with
+    match Decoding.fromString(json, Decode.array valueDecoder) with
     | Ok value ->
       Assert.AreEqual(5, value.Length)
       Assert.AreEqual(1, value[0].Value)
@@ -288,7 +288,7 @@ type OptionalTests() =
   ]
 }"""
 
-    let value = Decode.fromString(json, decoder)
+    let value = Decoding.fromString(json, decoder)
 
     match value with
     | Ok value ->

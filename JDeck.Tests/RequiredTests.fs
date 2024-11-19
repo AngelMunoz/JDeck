@@ -12,25 +12,25 @@ type RequiredTests() =
 
   [<TestMethod>]
   member _.``JDeck can decode strings``() =
-    match Decode.fromString("\"This is a string\"", Required.string) with
+    match Decoding.fromString("\"This is a string\"", Required.string) with
     | Ok value -> Assert.AreEqual("This is a string", value)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode true as boolean``() =
-    match Decode.fromString("true", Required.boolean) with
+    match Decoding.fromString("true", Required.boolean) with
     | Ok value -> Assert.IsTrue value
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode false as boolean``() =
-    match Decode.fromString("false", Required.boolean) with
+    match Decoding.fromString("false", Required.boolean) with
     | Ok value -> Assert.IsFalse value
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode characters``() =
-    match Decode.fromString("\"a\"", Required.char) with
+    match Decoding.fromString("\"a\"", Required.char) with
     | Ok value -> Assert.AreEqual('a', value)
     | Error err -> Assert.Fail(err.message)
 
@@ -38,7 +38,7 @@ type RequiredTests() =
   member _.``JDeck fails to decode characters when strings are longer than 1``
     ()
     =
-    match Decode.fromString("\"ab\"", Required.char) with
+    match Decoding.fromString("\"ab\"", Required.char) with
     | Ok _ -> Assert.Fail()
     | Error err ->
       Assert.AreEqual(
@@ -50,44 +50,44 @@ type RequiredTests() =
   member _.``JDeck can parse guids``() =
     let expected = Guid.NewGuid()
 
-    match Decode.fromString($"\"{expected}\"", Required.guid) with
+    match Decoding.fromString($"\"{expected}\"", Required.guid) with
     | Ok actual -> Assert.AreEqual(expected, actual)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can parse nulls as unit``() =
-    match Decode.fromString("null", Required.unit) with
+    match Decoding.fromString("null", Required.unit) with
     | Ok actual -> Assert.AreEqual((), actual)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode bytes``() =
-    match Decode.fromString("10", Required.byte) with
+    match Decoding.fromString("10", Required.byte) with
     | Ok value -> Assert.AreEqual(10uy, value)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode ints``() =
-    match Decode.fromString("10", Required.int) with
+    match Decoding.fromString("10", Required.int) with
     | Ok value -> Assert.AreEqual(10, value)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode int64s``() =
-    match Decode.fromString("1000", Required.int64) with
+    match Decoding.fromString("1000", Required.int64) with
     | Ok value -> Assert.AreEqual(1000L, value)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode floats``() =
-    match Decode.fromString("1000.50", Required.float) with
+    match Decoding.fromString("1000.50", Required.float) with
     | Ok value -> Assert.AreEqual(1000.50, value)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode date time``() =
     match
-      Decode.fromString("\"2024-11-17T05:35:11.147Z\"", Required.dateTime)
+      Decoding.fromString("\"2024-11-17T05:35:11.147Z\"", Required.dateTime)
     with
     | Ok value ->
       Assert.AreEqual(
@@ -103,7 +103,7 @@ type RequiredTests() =
   [<TestMethod>]
   member _.``JDeck can decode date time offset``() =
     match
-      Decode.fromString(
+      Decoding.fromString(
         "\"2024-11-17T05:35:11.147+00:00\"",
         Required.dateTimeOffset
       )
@@ -124,7 +124,7 @@ type RequiredTests() =
     let json = """{ "Name": "John Doe", "Age": 30 }"""
 
     match
-      Decode.fromStringCol(
+      Decoding.fromStringCol(
         json,
         (fun element -> validation {
 
@@ -146,7 +146,7 @@ type RequiredTests() =
   member _.``JDeck can decode arrays``() =
     let json = """[1, 2, 3, 4, 5]"""
 
-    match Decode.fromString(json, Decode.array(fun _ v -> Required.int v)) with
+    match Decoding.fromString(json, Decode.array(fun _ v -> Required.int v)) with
     | Ok value ->
       Assert.AreEqual(5, value.Length)
       Assert.AreEqual(1, value[0])
@@ -188,7 +188,7 @@ type RequiredTests() =
         |}
       }
 
-    match Decode.fromStringCol(json, decoder) with
+    match Decoding.fromStringCol(json, decoder) with
     | Ok value ->
       Assert.AreEqual("John Doe", value.name)
       Assert.AreEqual(30, value.age)
@@ -236,7 +236,7 @@ type RequiredTests() =
   ]
 }"""
 
-    match Decode.fromStringCol(json, decoder) with
+    match Decoding.fromStringCol(json, decoder) with
     | Ok value ->
       Assert.AreEqual("John Doe", value.name)
       Assert.AreEqual(30, value.age)
@@ -287,7 +287,7 @@ type RequiredTests() =
   ]
 }"""
 
-    match Decode.fromStringCol(json, decoder) with
+    match Decoding.fromStringCol(json, decoder) with
     | Ok value ->
       Assert.AreEqual("John Doe", value.name)
       Assert.AreEqual(30, value.age)
