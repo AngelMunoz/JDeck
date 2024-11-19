@@ -218,7 +218,7 @@ module Decode =
         | kind ->
           DecodeError.ofError(
             element.Clone(),
-            $"Expected '{Enum.GetName valueKind}' but got `%s{Enum.GetName kind}`"
+            $"Expected '{valueKind}' but got `{kind}`"
           )
           |> Error
       with ex ->
@@ -238,7 +238,7 @@ module Decode =
           | kind ->
             DecodeError.ofError(
               element.Clone(),
-              $"Expected a boolean but got `%s{Enum.GetName kind}`"
+              $"Expected a boolean but got `{kind}`"
             )
             |> Error
         with ex ->
@@ -445,7 +445,7 @@ module Decode =
         | kind ->
           DecodeError.ofError(
             element.Clone(),
-            $"Expected '{Enum.GetName valueKind}' but got `%s{Enum.GetName kind}`"
+            $"Expected '{valueKind}' but got `{kind}`"
           )
           |> Error
       with ex ->
@@ -467,7 +467,7 @@ module Decode =
         | kind ->
           DecodeError.ofError(
             element.Clone(),
-            $"Expected a boolean but got `%s{Enum.GetName kind}`"
+            $"Expected a boolean but got `{kind}`"
           )
           |> Error
       with ex ->
