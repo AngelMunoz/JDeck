@@ -181,7 +181,7 @@ type OptionalTests() =
 
     let valueDecoder =
       fun element -> result {
-        let! value = element |> Required.property "value" Optional.int
+        let! value = element |> Required.Property.get("value", Optional.int)
 
         return {| value = value |}
       }
@@ -196,7 +196,7 @@ type OptionalTests() =
 
     let valueDecoder =
       fun element -> result {
-        let! value = element |> Optional.property "value" Required.int
+        let! value = element |> Optional.Property.get("value", Required.int)
 
         return {| value = value |}
       }
@@ -245,10 +245,13 @@ type OptionalTests() =
   member _.``JDeck can decode nested objects with optional properties``() =
     let addressDecoder =
       fun _ address -> result {
-        let! city = address |> Required.property "city" Required.string
+        let! city = address |> Required.Property.get("city", Required.string)
 
-        and! country = address |> Required.property "country" Required.string
-        and! zipCode = address |> Optional.property "zipCode" Required.string
+        and! country =
+          address |> Required.Property.get("country", Required.string)
+
+        and! zipCode =
+          address |> Optional.Property.get("zipCode", Required.string)
 
         return {|
           city = city
@@ -259,12 +262,15 @@ type OptionalTests() =
 
     let decoder =
       fun element -> result {
-        let! name = element |> Required.property "name" Required.string
-        and! age = element |> Required.property "age" Required.int
-        and! status = element |> Required.property "status" Optional.string
+        let! name = element |> Required.Property.get("name", Required.string)
+        and! age = element |> Required.Property.get("age", Required.int)
+
+        and! status =
+          element |> Required.Property.get("status", Optional.string)
 
         and! addresses =
-          element |> Required.property "addresses" (Decode.array addressDecoder)
+          element
+          |> Required.Property.get("addresses", (Decode.array addressDecoder))
 
         return {|
           name = name
@@ -273,6 +279,7 @@ type OptionalTests() =
           addresses = addresses
         |}
       }
+
     let json =
       """{
   "name": "John Doe", "age": 30, "status": null,

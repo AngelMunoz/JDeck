@@ -38,40 +38,51 @@ type DecodeTests() =
   [<TestMethod>]
   member _.``JDeck can use oneOf to decode unions``() =
     let sample = """{ "a": "string"; "b": 1; "c": true }"""
+
     let aDecoder value =
       match Required.string value with
-      | Ok value -> Ok  (A value)
+      | Ok value -> Ok(A value)
       | Error err -> Error err
 
     let bDecoder value =
       match Required.int value with
-      | Ok value -> Ok (B value)
+      | Ok value -> Ok(B value)
       | Error err -> Error err
 
     let cDecoder value =
       match Required.boolean value with
-      | Ok value -> Ok (C value)
+      | Ok value -> Ok(C value)
       | Error err -> Error err
-    let unionDecoder = Required.property "value" (Decode.oneOf [ cDecoder; bDecoder; aDecoder])
+
+    let unionDecoder =
+      Required.Property.get(
+        "value",
+        (Decode.oneOf [ cDecoder; bDecoder; aDecoder ])
+      )
 
     match Decode.fromString("""{ "value": "string" }""", unionDecoder) with
-    | Ok (A value) -> Assert.AreEqual("string", value)
+    | Ok(A value) -> Assert.AreEqual("string", value)
     | Ok _ -> Assert.Fail()
     | Error err -> Assert.Fail(err.message)
 
-    let unionDecoder = Required.property "value" (Decode.oneOf [ aDecoder; cDecoder; bDecoder])
+    let unionDecoder =
+      Required.Property.get(
+        "value",
+        (Decode.oneOf [ aDecoder; cDecoder; bDecoder ])
+      )
 
     match Decode.fromString("""{ "value": 1 }""", unionDecoder) with
-    | Ok (B value) -> Assert.AreEqual(1, value)
+    | Ok(B value) -> Assert.AreEqual(1, value)
     | Ok _ -> Assert.Fail()
     | Error err -> Assert.Fail(err.message)
 
-    let unionDecoder = Required.property "value" (Decode.oneOf [ aDecoder; bDecoder; cDecoder])
+    let unionDecoder =
+      Required.Property.get(
+        "value",
+        (Decode.oneOf [ aDecoder; bDecoder; cDecoder ])
+      )
 
     match Decode.fromString("""{ "value": true }""", unionDecoder) with
-    | Ok (C value) -> Assert.AreEqual(true, value)
+    | Ok(C value) -> Assert.AreEqual(true, value)
     | Ok _ -> Assert.Fail()
     | Error err -> Assert.Fail(err.message)
-
-
-

@@ -125,12 +125,12 @@ type RequiredTests() =
     let json = """{ "Name": "John Doe", "Age": 30 }"""
 
     match
-      Decode.validateFromString(
+      Decode.fromStringCol(
         json,
         (fun element -> validation {
 
-          let! name = element |> Required.property "Name" Required.string
-          and! age = element |> Required.property "Age" Required.int
+          let! name = element |> Required.Property.get("Name", Required.string)
+          and! age = element |> Required.Property.get("Age", Required.int)
 
           return {| name = name; age = age |}
         })
@@ -165,9 +165,10 @@ type RequiredTests() =
 
     let addressDecoder =
       fun address -> result {
-        let! city = address |> Required.property "City" Required.string
+        let! city = address |> Required.Property.get("City", Required.string)
 
-        and! country = address |> Required.property "Country" Required.string
+        and! country =
+          address |> Required.Property.get("Country", Required.string)
 
         return {| city = city; country = country |}
       }
@@ -175,10 +176,11 @@ type RequiredTests() =
     let decoder =
       fun element -> validation {
 
-        let! name = element |> Required.property "Name" Required.string
-        and! age = element |> Required.property "Age" Required.int
+        let! name = element |> Required.Property.get("Name", Required.string)
+        and! age = element |> Required.Property.get("Age", Required.int)
 
-        and! address = element |> Required.property "Address" addressDecoder
+        and! address =
+          element |> Required.Property.get("Address", addressDecoder)
 
         return {|
           name = name
@@ -187,7 +189,7 @@ type RequiredTests() =
         |}
       }
 
-    match Decode.validateFromString(json, decoder) with
+    match Decode.fromStringCol(json, decoder) with
     | Ok value ->
       Assert.AreEqual("John Doe", value.name)
       Assert.AreEqual(30, value.age)
@@ -197,24 +199,27 @@ type RequiredTests() =
       err |> List.fold (fun acc e -> acc + e.message + ", ") "" |> Assert.Fail
 
   [<TestMethod>]
-  member _.``JDeck can traverse with fail-first results of sequence properties``() =
+  member _.``JDeck can traverse with fail-first results of sequence properties``
+    ()
+    =
 
     let addressDecoder =
-      fun _ address -> result {
-        let! city = address |> Required.property "city" Required.string
+      fun address -> result {
+        let! city = address |> Required.Property.get("city", Required.string)
 
-        and! country = address |> Required.property "country" Required.string
+        and! country =
+          address |> Required.Property.get("country", Required.string)
 
         return {| city = city; country = country |}
       }
 
     let decoder =
       fun element -> validation {
-        let! name = element |> Required.property "name" Required.string
-        and! age = element |> Required.property "age" Required.int
+        let! name = element |> Required.Property.get("name", Required.string)
+        and! age = element |> Required.Property.get("age", Required.int)
 
         and! addresses =
-          element |> Required.arrayProperty "addresses" addressDecoder
+          element |> Required.Property.array("addresses", addressDecoder)
 
         return {|
           name = name
@@ -232,7 +237,7 @@ type RequiredTests() =
   ]
 }"""
 
-    match Decode.validateFromString(json, decoder) with
+    match Decode.fromStringCol(json, decoder) with
     | Ok value ->
       Assert.AreEqual("John Doe", value.name)
       Assert.AreEqual(30, value.age)
@@ -245,30 +250,37 @@ type RequiredTests() =
       err |> List.fold (fun acc e -> acc + e.message + ", ") "" |> Assert.Fail
 
   [<TestMethod>]
-  member _.``JDeck can traverse with traversable results of sequence properties``() =
+  member _.``JDeck can traverse with traversable results of sequence properties``
+    ()
+    =
 
-    let addressDecoder = fun _ address -> validation {
-      let! city = address |> Required.property "city" Required.string
+    let addressDecoder =
+      fun address -> validation {
+        let! city = address |> Required.Property.get("city", Required.string)
 
-      and! country = address |> Required.property "country" Required.string
+        and! country =
+          address |> Required.Property.get("country", Required.string)
 
-      return {| city = city; country = country |}
-    }
+        return {| city = city; country = country |}
+      }
 
-    let decoder = fun element -> validation {
-      let! name = element |> Required.property "name" Required.string
-      and! age = element |> Required.property "age" Required.int
+    let decoder =
+      fun element -> validation {
+        let! name = element |> Required.Property.get("name", Required.string)
+        and! age = element |> Required.Property.get("age", Required.int)
 
-      and! addresses = element |> Required.collectArrayProperty "addresses" addressDecoder
+        and! addresses =
+          element |> Required.Property.array("addresses", addressDecoder)
 
-      return {|
-        name = name
-        age = age
-        addresses = addresses
-      |}
-    }
+        return {|
+          name = name
+          age = age
+          addresses = addresses
+        |}
+      }
 
-    let json = """{
+    let json =
+      """{
   "name": "John Doe", "age": 30,
   "addresses": [
     { "city": "New York", "country": "USA" },
@@ -276,7 +288,7 @@ type RequiredTests() =
   ]
 }"""
 
-    match Decode.validateFromString(json, decoder) with
+    match Decode.fromStringCol(json, decoder) with
     | Ok value ->
       Assert.AreEqual("John Doe", value.name)
       Assert.AreEqual(30, value.age)
@@ -287,4 +299,3 @@ type RequiredTests() =
       Assert.AreEqual("UK", value.addresses[1].country)
     | Error err ->
       err |> List.fold (fun acc e -> acc + e.message + ", ") "" |> Assert.Fail
-
