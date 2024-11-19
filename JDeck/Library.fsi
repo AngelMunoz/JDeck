@@ -24,13 +24,17 @@ module DecodeError =
 
 type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
 type IndexedDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeError>
-type ValidationDecoder<'TResult> = JsonElement -> Result<'TResult, DecodeError list>
+type CollectErrorsDecoder<'TResult> = JsonElement -> Result<'TResult, DecodeError list>
+type IndexedCollectErrorsDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeError list>
 
 [<AutoOpen>]
 module Decode =
   module Decode =
     val inline sequence:
       [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult seq, DecodeError>
+
+    val inline sequenceCol:
+      [<InlineIfLambda>] decoder: IndexedCollectErrorsDecoder<'a> -> el: JsonElement -> Result<'a seq, DecodeError list>
 
     val inline array:
       [<InlineIfLambda>] decoder: IndexedDecoder<'TResult> -> el: JsonElement -> Result<'TResult array, DecodeError>
@@ -42,8 +46,13 @@ module Decode =
 
     val collectOneOf: decoders: Decoder<'TResult> seq -> element: JsonElement -> Result<'TResult, DecodeError list>
 
-  module Required =
+    val inline auto: el: JsonElement -> Result<'TResult, DecodeError>
 
+    val inline autoJsonOptions: options: JsonSerializerOptions -> el: JsonElement -> Result<'TResult, DecodeError>
+
+    val useDecoder: decoder: Decoder<'TResult> -> options: JsonSerializerOptions -> JsonSerializerOptions
+
+  module Required =
 
     val string: Decoder<string>
     val boolean: Decoder<bool>
@@ -57,47 +66,34 @@ module Decode =
     val dateTime: Decoder<DateTime>
     val dateTimeOffset: Decoder<DateTimeOffset>
 
-    val inline property:
-      name: string ->
-      [<InlineIfLambda>] decoder: (JsonElement -> Result<'TResult, DecodeError>) ->
-      element: JsonElement ->
-        Result<'TResult, DecodeError>
+    [<Class>]
+    type Property =
+      static member inline get:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult, DecodeError>)
 
-    val inline seqProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
-      JsonElement ->
-        Result<'TResult seq, DecodeError>
+      static member inline get:
+        name: string * decoder: CollectErrorsDecoder<'TResult> -> (JsonElement -> Result<'TResult, DecodeError list>)
 
-    val inline listProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
-      JsonElement ->
-        Result<'TResult list, DecodeError>
+      static member inline seq:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult seq, DecodeError>)
 
-    val inline arrayProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
-      JsonElement ->
-        Result<'TResult array, DecodeError>
+      static member inline seq:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult seq, DecodeError list>)
 
-    val inline collectSeqProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
-      JsonElement ->
-        Result<'TResult seq, DecodeError list>
+      static member inline list:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult list, DecodeError>)
 
-    val inline collectListProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
-      JsonElement ->
-        Result<'TResult list, DecodeError list>
+      static member inline list:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult list, DecodeError list>)
 
-    val inline collectArrayProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
-      JsonElement ->
-        Result<'TResult array, DecodeError list>
+      static member inline array:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult array, DecodeError>)
+
+      static member inline array:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult array, DecodeError list>)
 
   module Optional =
 
@@ -113,63 +109,47 @@ module Decode =
     val dateTime: Decoder<DateTime option>
     val dateTimeOffset: Decoder<DateTimeOffset option>
 
-    val inline property:
-      name: string ->
-      [<InlineIfLambda>] decoder: Decoder<'TResult> ->
-      element: JsonElement ->
-        Result<'TResult option, DecodeError>
+    [<Class>]
+    type Property =
+      static member inline get:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult option, DecodeError>)
 
-    val inline seqProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
-      JsonElement ->
-        Result<'TResult seq option, DecodeError>
+      static member inline get:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult option, DecodeError list>)
 
-    val inline listProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
-      JsonElement ->
-        Result<'TResult list option, DecodeError>
+      static member inline seq:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult seq option, DecodeError>)
 
-    val inline arrayProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError>) ->
-      JsonElement ->
-        Result<'TResult array option, DecodeError>
+      static member inline seq:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult seq option, DecodeError list>)
 
-    val inline collectSeqProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
-      JsonElement ->
-        Result<'TResult seq option, DecodeError list>
+      static member inline list:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult list option, DecodeError>)
 
-    val inline collectListProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
-      JsonElement ->
-        Result<'TResult list option, DecodeError list>
+      static member inline list:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult list option, DecodeError list>)
 
-    val inline collectArrayProperty:
-      name: string ->
-      [<InlineIfLambda>] decoder: (int -> JsonElement -> Result<'TResult, DecodeError list>) ->
-      JsonElement ->
-        Result<'TResult array option, DecodeError list>
+      static member inline array:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult array option, DecodeError>)
 
+      static member inline array:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult array option, DecodeError list>)
+
+[<AutoOpen>]
 module Builders =
   [<Class>]
   type DecodeBuilder =
-    member inline Bind:
-      value: Result<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> Result<'TResult, DecodeError>) ->
-        Result<'TResult, DecodeError>
-
-    member inline Source: result: Result<'TResult, DecodeError> -> Result<'TResult, DecodeError>
-
     member inline Return: value: 'TResult -> Result<'TResult, DecodeError>
 
     member inline ReturnFrom: value: Result<'TResult, DecodeError> -> Result<'TResult, DecodeError>
 
-    member inline BindReturn:
-      value: Result<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> 'TResult) -> Result<'TResult, DecodeError>
+    member inline Bind:
+      value: Result<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> Result<'TResult, DecodeError>) ->
+        Result<'TResult, DecodeError>
 
     member inline Zero: unit -> Result<unit, DecodeError>
 
@@ -183,7 +163,6 @@ module Builders =
       value: Result<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> Result<'TResult, DecodeError>) ->
         Result<'TResult, DecodeError>
 
-
     member inline TryFinally:
       [<InlineIfLambda>] generator: (unit -> Result<'TResult, DecodeError>) *
       [<InlineIfLambda>] compensation: (unit -> unit) ->
@@ -192,6 +171,9 @@ module Builders =
     member inline Using<'disposable, 'TResult when 'disposable :> IDisposable> :
       resource: 'disposable * [<InlineIfLambda>] binder: ('disposable -> Result<'TResult, DecodeError>) ->
         Result<'TResult, DecodeError>
+
+    member inline BindReturn:
+      value: Result<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> 'TResult) -> Result<'TResult, DecodeError>
 
     member inline MergeSources:
       r1: Result<'TValue1, 'error> * r2: Result<'TValue2, 'error> -> Result<'TValue1 * 'TValue2, 'error>
@@ -215,83 +197,30 @@ module Builders =
       r5: Result<'TValue5, 'error> ->
         Result<'TValue1 * 'TValue2 * 'TValue3 * 'TValue4 * 'TValue5, 'error>
 
-  type ResultCollect<'ok, 'error> = Result<'ok, 'error list>
-
-  [<Class>]
-  type DecodeCollectBuilder =
-    member inline Bind:
-      value: ResultCollect<'TValue, DecodeError> *
-      [<InlineIfLambda>] f: ('TValue -> ResultCollect<'TResult, DecodeError>) ->
-        ResultCollect<'TResult, DecodeError>
-
-    member inline Source: result: ResultCollect<'TResult, DecodeError> -> ResultCollect<'TResult, DecodeError>
-
-    member inline Return: value: 'TResult -> ResultCollect<'TResult, DecodeError>
-
-    member inline ReturnFrom: value: ResultCollect<'TResult, DecodeError> -> ResultCollect<'TResult, DecodeError>
-
-    member inline BindReturn:
-      value: ResultCollect<'TValue, DecodeError> * [<InlineIfLambda>] f: ('TValue -> 'TResult) ->
-        ResultCollect<'TResult, DecodeError>
-
-    member inline Zero: unit -> ResultCollect<unit, DecodeError>
-
-    member inline Delay:
-      [<InlineIfLambda>] generator: (unit -> ResultCollect<'TValue, DecodeError>) ->
-        (unit -> ResultCollect<'TValue, DecodeError>)
-
-    member inline Run:
-      [<InlineIfLambda>] generator: (unit -> ResultCollect<'TResult, DecodeError>) ->
-        ResultCollect<'TResult, DecodeError>
-
-    member inline Combine:
-      value: ResultCollect<'TValue, DecodeError> *
-      [<InlineIfLambda>] f: ('TValue -> ResultCollect<'TResult, DecodeError>) ->
-        ResultCollect<'TResult, DecodeError>
-
-    member inline TryFinally:
-      [<InlineIfLambda>] generator: (unit -> ResultCollect<'TResult, DecodeError>) *
-      [<InlineIfLambda>] compensation: (unit -> unit) ->
-        ResultCollect<'TResult, DecodeError>
-
-    member inline Using<'disposable, 'TResult when 'disposable :> IDisposable> :
-      resource: 'disposable * [<InlineIfLambda>] binder: ('disposable -> ResultCollect<'TResult, DecodeError>) ->
-        ResultCollect<'TResult, DecodeError>
-
-    member inline MergeSources:
-      r1: ResultCollect<'TValue1, 'error> * r2: ResultCollect<'TValue2, 'error> ->
-        ResultCollect<'TValue1 * 'TValue2, 'error>
-
-    member inline MergeSources3:
-      r1: ResultCollect<'TValue1, 'error> * r2: ResultCollect<'TValue2, 'error> * r3: ResultCollect<'TValue3, 'error> ->
-        ResultCollect<'TValue1 * 'TValue2 * 'TValue3, 'error>
-
-    member inline MergeSources4:
-      r1: ResultCollect<'TValue1, 'error> *
-      r2: ResultCollect<'TValue2, 'error> *
-      r3: ResultCollect<'TValue3, 'error> *
-      r4: ResultCollect<'TValue4, 'error> ->
-        ResultCollect<'TValue1 * 'TValue2 * 'TValue3 * 'TValue4, 'error>
-
-    member inline MergeSources5:
-      r1: ResultCollect<'TValue1, 'error> *
-      r2: ResultCollect<'TValue2, 'error> *
-      r3: ResultCollect<'TValue3, 'error> *
-      r4: ResultCollect<'TValue4, 'error> *
-      r5: ResultCollect<'TValue5, 'error> ->
-        ResultCollect<'TValue1 * 'TValue2 * 'TValue3 * 'TValue4 * 'TValue5, 'error>
+    member inline Source: result: Result<'TResult, DecodeError> -> Result<'TResult, DecodeError>
 
   val decode: DecodeBuilder
-  val decodeCollect: DecodeCollectBuilder
-
-  [<AutoOpen>]
-  module BuilderExtensions =
-
-    type DecodeCollectBuilder with
-      member inline Source: result: Result<'TResult, DecodeError> -> ResultCollect<'TResult, DecodeError>
 
 [<Class>]
 type Decode =
+  static member inline auto: json: string * ?docOptions: JsonDocumentOptions -> Result<'TResult, DecodeError>
+
+  static member inline auto:
+    json: string * options: JsonSerializerOptions * ?docOptions: JsonDocumentOptions -> Result<'TResult, DecodeError>
+
+  static member inline auto: json: byte array * ?docOptions: JsonDocumentOptions -> Result<'TResult, DecodeError>
+
+  static member inline auto:
+    json: byte array * options: JsonSerializerOptions * ?docOptions: JsonDocumentOptions ->
+      Result<'TResult, DecodeError>
+
+  static member inline auto:
+    json: Stream * ?docOptions: JsonDocumentOptions -> System.Threading.Tasks.Task<Result<'TResult, DecodeError>>
+
+  static member inline auto:
+    json: Stream * options: JsonSerializerOptions * ?docOptions: JsonDocumentOptions ->
+      System.Threading.Tasks.Task<Result<'TResult, DecodeError>>
+
   static member inline fromString:
     value: string * options: JsonDocumentOptions * decoder: Decoder<'TResult> -> Result<'TResult, DecodeError>
 
@@ -308,23 +237,23 @@ type Decode =
   static member inline fromStream:
     value: Stream * decoder: Decoder<'TResult> -> Threading.Tasks.Task<Result<'TResult, DecodeError>>
 
-  static member inline validateFromString:
-    value: string * options: JsonDocumentOptions * decoder: ValidationDecoder<'TResult> ->
+  static member inline fromStringCol:
+    value: string * options: JsonDocumentOptions * decoder: CollectErrorsDecoder<'TResult> ->
       Result<'TResult, DecodeError list>
 
-  static member inline validateFromString:
-    value: string * decoder: ValidationDecoder<'TResult> -> Result<'TResult, DecodeError list>
+  static member inline fromStringCol:
+    value: string * decoder: CollectErrorsDecoder<'TResult> -> Result<'TResult, DecodeError list>
 
-  static member inline validateFromBytes:
-    value: byte array * options: JsonDocumentOptions * decoder: ValidationDecoder<'TResult> ->
+  static member inline fromBytesCol:
+    value: byte array * options: JsonDocumentOptions * decoder: CollectErrorsDecoder<'TResult> ->
       Result<'TResult, DecodeError list>
 
-  static member inline validateFromBytes:
-    value: byte array * decoder: ValidationDecoder<'TResult> -> Result<'TResult, DecodeError list>
+  static member inline fromBytesCol:
+    value: byte array * decoder: CollectErrorsDecoder<'TResult> -> Result<'TResult, DecodeError list>
 
-  static member inline validateFromStream:
-    value: Stream * options: JsonDocumentOptions * decoder: ValidationDecoder<'TResult> ->
+  static member inline fromStreamCol:
+    value: Stream * options: JsonDocumentOptions * decoder: CollectErrorsDecoder<'TResult> ->
       Threading.Tasks.Task<Result<'TResult, DecodeError list>>
 
-  static member inline validateFromStream:
-    value: Stream * decoder: ValidationDecoder<'TResult> -> Threading.Tasks.Task<Result<'TResult, DecodeError list>>
+  static member inline fromStreamCol:
+    value: Stream * decoder: CollectErrorsDecoder<'TResult> -> Threading.Tasks.Task<Result<'TResult, DecodeError list>>

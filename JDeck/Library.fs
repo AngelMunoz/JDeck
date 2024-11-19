@@ -3,6 +3,7 @@ namespace JDeck
 open System
 open System.IO
 open System.Text.Json
+open System.Text.Json.Serialization
 
 
 type DecodeError = {
@@ -65,9 +66,11 @@ type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
 type IndexedDecoder<'TResult> =
   int -> JsonElement -> Result<'TResult, DecodeError>
 
-type ValidationDecoder<'TResult> =
+type CollectErrorsDecoder<'TResult> =
   JsonElement -> Result<'TResult, DecodeError list>
 
+type IndexedCollectErrorsDecoder<'TResult> =
+  int -> JsonElement -> Result<'TResult, DecodeError list>
 
 module Seq =
   let inline collectErrors
@@ -114,6 +117,12 @@ module Decode =
       =
       el.EnumerateArray() |> Seq.collectUntilError decoder
 
+    let inline sequenceCol
+      ([<InlineIfLambda>] decoder: IndexedCollectErrorsDecoder<_>)
+      (el: JsonElement)
+      =
+      el.EnumerateArray() |> Seq.collectErrors decoder
+
     let oneOf (decoders: Decoder<_> seq) element =
       let mutable resolvedValue = None
       let mutable error = None
@@ -151,6 +160,50 @@ module Decode =
 
     let inline list ([<InlineIfLambda>] decoder) (el: JsonElement) =
       sequence decoder el |> Result.map List.ofSeq
+
+    let inline auto<'TResult> (el: JsonElement) =
+      try
+        el.Deserialize<'TResult>() |> Ok
+      with ex ->
+        DecodeError.ofError<'TResult>(el.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
+
+    let inline autoJsonOptions
+      (options: JsonSerializerOptions)
+      (el: JsonElement)
+      =
+      try
+        el.Deserialize<'TResult>(options) |> Ok
+      with ex ->
+        DecodeError.ofError<'TResult>(el.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
+
+    [<AutoOpen>]
+    module JsonConverter =
+      type DecoderConverter<'T>(decoder: JsonElement -> Result<'T, DecodeError>)
+        =
+        inherit JsonConverter<'T>()
+
+        override this.CanConvert(typeToConvert: Type) =
+          typeToConvert = typeof<'T>
+
+        override this.Read(reader: byref<Utf8JsonReader>, _: Type, _) =
+          use json = JsonDocument.ParseValue(&reader)
+
+          match decoder json.RootElement with
+          | Ok value -> value
+          | Error err -> raise(JsonException(err.message))
+
+        override this.Write
+          (writer: Utf8JsonWriter, value, options: JsonSerializerOptions)
+          =
+          JsonSerializer.Serialize(writer, value, options)
+
+    let useDecoder decoder (options: JsonSerializerOptions) =
+      options.Converters.Insert(0, DecoderConverter<'T>(decoder))
+      options
 
   module Required =
 
@@ -309,86 +362,73 @@ module Decode =
             |> Error
         )
 
-    let inline property
-      (name: string)
-      ([<InlineIfLambda>] decoder)
-      (element: JsonElement)
-      =
-      match element.TryGetProperty name with
-      | true, el -> decoder el
-      | false, _ ->
-        DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
-        |> DecodeError.withProperty name
-        |> Error
+    [<Class>]
+    type Property =
+      static member inline get(name: string, decoder) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> decoder el
+          | false, _ ->
+            DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+            |> DecodeError.withProperty name
+            |> Error
 
-    let inline seqProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder)
-      (element: JsonElement)
-      =
-      match element.TryGetProperty name with
-      | true, el -> Decode.sequence decoder el
-      | false, _ ->
-        DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
-        |> DecodeError.withProperty name
-        |> Error
+      static member inline get(name: string, decoder) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> decoder el
+          | false, _ ->
+            [
+              DecodeError.ofError(
+                element.Clone(),
+                $"Property '{name}' not found"
+              )
+              |> DecodeError.withProperty name
+            ]
+            |> Error
 
-    let inline listProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder)
-      (element: JsonElement)
-      =
-      seqProperty name decoder element |> Result.map List.ofSeq
+      static member inline seq(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.sequence (fun _ -> decoder) el
+          | false, _ ->
+            DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+            |> DecodeError.withProperty name
+            |> Error
 
-    let inline arrayProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder)
-      (element: JsonElement)
-      =
-      seqProperty name decoder element |> Result.map Array.ofSeq
+      static member inline seq(name: string, decoder: CollectErrorsDecoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.sequenceCol (fun _ -> decoder) el
+          | false, _ ->
+            [
+              DecodeError.ofError(
+                element.Clone(),
+                $"Property '{name}' not found"
+              )
+              |> DecodeError.withProperty name
+            ]
+            |> Error
 
-    let inline collectSeqProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError list>)
-      (element: JsonElement)
-      =
-      match element.TryGetProperty name with
-      | true, el ->
-        let errors = ResizeArray<_>()
-        let values = ResizeArray<_>()
+      static member inline list(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          element |> Property.seq(name, decoder) |> Result.map List.ofSeq
 
-        for i, x in el.EnumerateArray() |> Seq.indexed do
-          match decoder i x with
-          | Ok value -> values.Add value
-          | Error error -> errors.AddRange error
+      static member inline list
+        (name: string, decoder: CollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          element |> Property.seq(name, decoder) |> Result.map List.ofSeq
 
-        if errors.Count > 0 then
-          Error(errors |> List.ofSeq)
-        else
-          Ok(values :> seq<_>)
-      | false, _ ->
-        [
-          DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
-          |> DecodeError.withProperty name
-        ]
-        |> Error
+      static member inline array(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          element |> Property.seq(name, decoder) |> Result.map Array.ofSeq
 
-    let inline collectArrayProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError list>)
-      (element: JsonElement)
-      =
-      collectSeqProperty name decoder element |> Result.map Array.ofSeq
-
-    let inline collectListProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError list>)
-      (element: JsonElement)
-      =
-      collectSeqProperty name decoder element |> Result.map List.ofSeq
+      static member inline array
+        (name: string, decoder: CollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          element |> Property.seq(name, decoder) |> Result.map Array.ofSeq
 
   module Optional =
 
@@ -552,111 +592,78 @@ module Decode =
             |> Error
         )
 
-    let inline property
-      (name: string)
-      ([<InlineIfLambda>] decoder: Decoder<_>)
-      (element: JsonElement)
-      =
-      match element.TryGetProperty name with
-      | true, el -> decoder el |> Result.map Some
-      | false, _ -> Ok None
+    [<Class>]
+    type Property =
+      static member inline get(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> decoder el |> Result.map Some
+          | false, _ -> Ok None
 
-    let inline seqProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TResult, DecodeError>)
-      (element: JsonElement)
-      =
-      match element.TryGetProperty name with
-      | true, el -> Decode.sequence decoder el |> Result.map Some
-      | false, _ -> Ok None
+      static member inline get(name: string, decoder: CollectErrorsDecoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> decoder el |> Result.map Some
+          | false, _ -> Ok None
 
-    let inline listProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder)
-      (element: JsonElement)
-      =
-      seqProperty name decoder element
-      |> Result.map(
-        function
-        | Some v -> List.ofSeq v |> Some
-        | None -> None
-      )
+      static member inline seq(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.sequence (fun _ -> decoder) el |> Result.map Some
+          | false, _ -> Ok None
 
-    let inline arrayProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder)
-      (element: JsonElement)
-      =
-      seqProperty name decoder element
-      |> Result.map(
-        function
-        | Some v -> Array.ofSeq v |> Some
-        | None -> None
-      )
+      static member inline seq(name: string, decoder: CollectErrorsDecoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el ->
+            Decode.sequenceCol (fun _ -> decoder) el |> Result.map Some
+          | false, _ -> Ok None
 
-    let inline collectSeqProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError list>)
-      (element: JsonElement)
-      =
-      match element.TryGetProperty name with
-      | true, el ->
-        let errors = ResizeArray<_>()
-        let values = ResizeArray<_>()
+      static member inline list(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          element
+          |> Property.seq(name, decoder)
+          |> Result.map(
+            function
+            | Some v -> v |> List.ofSeq |> Some
+            | None -> None
+          )
 
-        for i, x in el.EnumerateArray() |> Seq.indexed do
-          match decoder i x with
-          | Ok value -> values.Add value
-          | Error error -> errors.AddRange error
+      static member inline list
+        (name: string, decoder: CollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          element
+          |> Property.seq(name, decoder)
+          |> Result.map(
+            function
+            | Some v -> v |> List.ofSeq |> Some
+            | None -> None
+          )
 
-        if errors.Count > 0 then
-          Error(errors |> List.ofSeq)
-        else
-          Ok(values :> seq<_> |> Some)
-      | false, _ ->
-        [
-          DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
-          |> DecodeError.withProperty name
-        ]
-        |> Error
+      static member inline array(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          element
+          |> Property.seq(name, decoder)
+          |> Result.map(
+            function
+            | Some v -> v |> Array.ofSeq |> Some
+            | None -> None
+          )
 
-    let inline collectArrayProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError list>)
-      (element: JsonElement)
-      =
-      collectSeqProperty name decoder element
-      |> Result.map(
-        function
-        | Some v -> Array.ofSeq v |> Some
-        | None -> None
-      )
+      static member inline array
+        (name: string, decoder: CollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          element
+          |> Property.seq(name, decoder)
+          |> Result.map(
+            function
+            | Some v -> v |> Array.ofSeq |> Some
+            | None -> None
+          )
 
-    let inline collectListProperty
-      (name: string)
-      ([<InlineIfLambda>] decoder:
-        int -> JsonElement -> Result<'TValue, DecodeError list>)
-      (element: JsonElement)
-      =
-      collectSeqProperty name decoder element
-      |> Result.map(
-        function
-        | Some v -> List.ofSeq v |> Some
-        | None -> None
-      )
-
-/// <summary>
-/// Provides a Result (fail-first) computation expression for decoding JSON values,
-/// and a ResultCollect (gather all errors) computation expression for decoding JSON values.
-/// </summary>
-/// <remarks>
-/// Please only use this if for some reason you're not already using FsToolkit.ErrorHandling
-/// These computation expressions while may work with arbitrary Result instances, it is not meant
-/// to be used for other purposes other than decoding JSON values.
-/// </remarks>
+[<AutoOpen>]
 module Builders =
   type DecodeBuilder() =
 
@@ -753,185 +760,7 @@ module Builders =
       | _, _, _, Error e4, _ -> Error e4
       | _, _, _, _, Error e5 -> Error e5
 
-  type ResultCollect<'ok, 'error> = Result<'ok, 'error list>
-
-  type DecodeCollectBuilder() =
-
-    member inline _.Bind
-      (
-        value: ResultCollect<'TValue, DecodeError>,
-        [<InlineIfLambda>] f: 'TValue -> ResultCollect<'TResult, DecodeError>
-      ) =
-      match value with
-      | Ok value -> f value
-      | Error error -> Error error
-
-    member inline _.Bind
-      (
-        value: ResultCollect<'TValue, DecodeError>,
-        [<InlineIfLambda>] f: 'TValue -> Result<'TResult, DecodeError>
-      ) : ResultCollect<'TResult, DecodeError> =
-      match value with
-      | Ok value -> f value |> Result.mapError(fun e -> [ e ])
-      | Error error -> Error error
-
-    member inline _.Source(result: ResultCollect<'TValue, DecodeError>) = result
-
-    member inline _.Return
-      (value: 'TValue)
-      : ResultCollect<'TValue, DecodeError> =
-      Ok value
-
-    member inline _.ReturnFrom(value: ResultCollect<'TValue, DecodeError>) =
-      value
-
-    member inline _.BindReturn
-      (
-        value: ResultCollect<'TValue, DecodeError>,
-        [<InlineIfLambda>] f: 'TValue -> 'TResult
-      ) =
-      Result.map f value
-
-    member inline this.Zero() = this.Return()
-
-    member inline _.Delay
-      ([<InlineIfLambda>] generator)
-      : unit -> ResultCollect<'TValue, DecodeError> =
-      generator
-
-    member inline _.Run
-      ([<InlineIfLambda>] generator: unit -> ResultCollect<'TValue, DecodeError>)
-      =
-      generator()
-
-    member inline this.Combine
-      (
-        value,
-        [<InlineIfLambda>] f: 'TValue -> ResultCollect<'TResult, DecodeError>
-      ) =
-      this.Bind(value, f)
-
-    member inline this.TryFinally
-      (
-        [<InlineIfLambda>] generator:
-          unit -> ResultCollect<'TValue, DecodeError>,
-        [<InlineIfLambda>] compensation: unit -> unit
-      ) =
-      try
-        this.Run generator
-      finally
-        compensation()
-
-    member inline this.Using
-      (
-        resource: 'disposable :> IDisposable,
-        [<InlineIfLambda>] binder:
-          'disposable -> ResultCollect<'TValue, DecodeError>
-      ) =
-      this.TryFinally(
-        (fun () -> binder resource),
-        (fun () ->
-          if not(obj.ReferenceEquals(resource, null)) then
-            resource.Dispose()
-        )
-      )
-
-    member inline _.MergeSources(r1, r2) =
-
-      match r1, r2 with
-      | Ok v1, Ok v2 -> Ok(v1, v2)
-      | Error e1, Error e2 -> Error [ yield! e1; yield! e2 ]
-      | Error e1, _ -> Error e1
-      | _, Error e2 -> Error e2
-
-
-    member inline _.MergeSources3(r1, r2, r3) =
-
-      match r1, r2, r3 with
-      | Ok v1, Ok v2, Ok v3 -> Ok(v1, v2, v3)
-      | Error e1, Error e2, Error e3 ->
-        Error [ yield! e1; yield! e2; yield! e3 ]
-      | Error e1, Error e2, _ -> Error [ yield! e1; yield! e2 ]
-      | Error e1, _, Error e3 -> Error [ yield! e1; yield! e3 ]
-      | _, Error e2, Error e3 -> Error [ yield! e2; yield! e3 ]
-      | Error e1, _, _ -> Error e1
-      | _, Error e2, _ -> Error e2
-      | _, _, Error e3 -> Error e3
-
-
-    member inline _.MergeSources4(r1, r2, r3, r4) =
-
-      match r1, r2, r3, r4 with
-      | Ok v1, Ok v2, Ok v3, Ok v4 -> Ok(v1, v2, v3, v4)
-      | Error e1, Error e2, Error e3, Error e4 ->
-        Error [ yield! e1; yield! e2; yield! e3; yield! e4 ]
-      | Error e1, Error e2, Error e3, _ ->
-        Error [ yield! e1; yield! e2; yield! e3 ]
-      | Error e1, Error e2, _, Error e4 ->
-        Error [ yield! e1; yield! e2; yield! e4 ]
-      | Error e1, _, Error e3, Error e4 ->
-        Error [ yield! e1; yield! e3; yield! e4 ]
-      | _, Error e2, Error e3, Error e4 ->
-        Error [ yield! e2; yield! e3; yield! e4 ]
-      | Error e1, _, _, _ -> Error e1
-      | _, Error e2, _, _ -> Error e2
-      | _, _, Error e3, _ -> Error e3
-      | _, _, _, Error e4 -> Error e4
-
-
-    member inline _.MergeSources5(r1, r2, r3, r4, r5) =
-
-      match r1, r2, r3, r4, r5 with
-      | Ok v1, Ok v2, Ok v3, Ok v4, Ok v5 -> Ok(v1, v2, v3, v4, v5)
-      | Error e1, Error e2, Error e3, Error e4, Error e5 ->
-        Error [ yield! e1; yield! e2; yield! e3; yield! e4; yield! e5 ]
-      | Error e1, Error e2, Error e3, Error e4, _ ->
-        Error [ yield! e1; yield! e2; yield! e3; yield! e4 ]
-      | Error e1, Error e2, Error e3, _, Error e5 ->
-        Error [ yield! e1; yield! e2; yield! e3; yield! e5 ]
-      | Error e1, Error e2, _, Error e4, Error e5 ->
-        Error [ yield! e1; yield! e2; yield! e4; yield! e5 ]
-      | Error e1, _, Error e3, Error e4, Error e5 ->
-        Error [ yield! e1; yield! e3; yield! e4; yield! e5 ]
-      | _, Error e2, Error e3, Error e4, Error e5 ->
-        Error [ yield! e2; yield! e3; yield! e4; yield! e5 ]
-      | Error e1, Error e2, Error e3, _, _ ->
-        Error [ yield! e1; yield! e2; yield! e3 ]
-      | Error e1, Error e2, _, Error e4, _ ->
-        Error [ yield! e1; yield! e2; yield! e4 ]
-      | Error e1, Error e2, _, _, Error e5 ->
-        Error [ yield! e1; yield! e2; yield! e5 ]
-      | Error e1, _, Error e3, Error e4, _ ->
-        Error [ yield! e1; yield! e3; yield! e4 ]
-      | Error e1, _, Error e3, _, Error e5 ->
-        Error [ yield! e1; yield! e3; yield! e5 ]
-      | Error e1, _, _, Error e4, Error e5 ->
-        Error [ yield! e1; yield! e4; yield! e5 ]
-      | _, Error e2, Error e3, Error e4, _ ->
-        Error [ yield! e2; yield! e3; yield! e4 ]
-      | _, Error e2, Error e3, _, Error e5 ->
-        Error [ yield! e2; yield! e3; yield! e5 ]
-      | _, Error e2, _, Error e4, Error e5 ->
-        Error [ yield! e2; yield! e4; yield! e5 ]
-      | Error e1, _, _, _, _ -> Error e1
-      | _, Error e2, _, _, _ -> Error e2
-      | _, _, Error e3, _, _ -> Error e3
-      | _, _, _, Error e4, _ -> Error e4
-      | _, _, _, _, Error e5 -> Error e5
-
-
-  [<AutoOpen>]
-  module BuilderExtensions =
-
-    type DecodeCollectBuilder with
-
-      member inline _.Source(result: Result<'TResult, DecodeError>) =
-        match result with
-        | Ok value -> Ok value
-        | Error err -> Error [ err ]
-
   let decode = DecodeBuilder()
-  let decodeCollect = DecodeCollectBuilder()
 
 type Decode =
   static member inline fromString(value: string, options, decoder: Decoder<_>) =
@@ -966,36 +795,36 @@ type Decode =
     return decoder root
   }
 
-  static member inline validateFromString
-    (value: string, options, decoder: ValidationDecoder<_>)
+  static member inline fromStringCol
+    (value: string, options, decoder: CollectErrorsDecoder<_>)
     =
     use doc = JsonDocument.Parse(value, options = options)
     let root = doc.RootElement
     decoder root
 
-  static member inline validateFromString
-    (value: string, decoder: ValidationDecoder<_>)
+  static member inline fromStringCol
+    (value: string, decoder: CollectErrorsDecoder<_>)
     =
     use doc = JsonDocument.Parse(value)
     let root = doc.RootElement
     decoder root
 
-  static member inline validateFromBytes
-    (value: byte array, options, decoder: ValidationDecoder<_>)
+  static member inline fromBytesCol
+    (value: byte array, options, decoder: CollectErrorsDecoder<_>)
     =
     use doc = JsonDocument.Parse(value, options = options)
     let root = doc.RootElement
     decoder root
 
-  static member inline validateFromBytes
-    (value: byte array, decoder: ValidationDecoder<_>)
+  static member inline fromBytesCol
+    (value: byte array, decoder: CollectErrorsDecoder<_>)
     =
     use doc = JsonDocument.Parse(value)
     let root = doc.RootElement
     decoder root
 
-  static member inline validateFromStream
-    (value: Stream, options, decoder: ValidationDecoder<_>)
+  static member inline fromStreamCol
+    (value: Stream, options, decoder: CollectErrorsDecoder<_>)
     =
     task {
       use! doc = JsonDocument.ParseAsync(value, options = options)
@@ -1003,11 +832,37 @@ type Decode =
       return decoder root
     }
 
-  static member inline validateFromStream
-    (value: Stream, decoder: ValidationDecoder<_>)
+  static member inline fromStreamCol
+    (value: Stream, decoder: CollectErrorsDecoder<_>)
     =
     task {
       use! doc = JsonDocument.ParseAsync(value)
       let root = doc.RootElement
       return decoder root
     }
+
+  static member inline auto(json: string, ?docOptions) =
+    use doc = JsonDocument.Parse(json, ?options = docOptions)
+    Decode.auto doc.RootElement
+
+  static member inline auto(json: string, options, ?docOptions) =
+    use doc = JsonDocument.Parse(json, ?options = docOptions)
+    Decode.autoJsonOptions options doc.RootElement
+
+  static member inline auto(json: byte array, ?docOptions) =
+    use doc = JsonDocument.Parse(json, ?options = docOptions)
+    Decode.auto doc.RootElement
+
+  static member inline auto(json: byte array, options, ?docOptions) =
+    use doc = JsonDocument.Parse(json, ?options = docOptions)
+    Decode.autoJsonOptions options doc.RootElement
+
+  static member inline auto(json: Stream, ?docOptions) = task {
+    use! doc = JsonDocument.ParseAsync(json, ?options = docOptions)
+    return Decode.auto doc.RootElement
+  }
+
+  static member inline auto(json: Stream, options, ?docOptions) = task {
+    use! doc = JsonDocument.ParseAsync(json, ?options = docOptions)
+    return Decode.autoJsonOptions options doc.RootElement
+  }
