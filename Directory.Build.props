@@ -1,0 +1,20 @@
+﻿<Project>
+  <PropertyGroup>
+    <Copyright>Copyright 2024 Angel D. Munoz.</Copyright>
+    <Authors>Angel Munoz and contributors</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <ProjectUrl>https://github.com/AngelMunoz/JDeck</ProjectUrl>
+    <RepositoryUrl>https://github.com/AngelMunoz/JDeck.git</RepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <WarnOn>3390;$(WarnOn)</WarnOn>
+    <LangVersion>preview</LangVersion>
+    <Nullable>true</Nullable>
+    <Version>1.0.0-beta-001</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)\LICENSE" Pack="true" PackagePath="\"/>
+    <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+</Project>
