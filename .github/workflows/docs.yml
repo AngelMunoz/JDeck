@@ -1,0 +1,43 @@
+﻿name: Docs
+
+# Trigger this Action when new code is pushed to the main branch
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - JDeck/**
+      - docs/**
+
+# We need some permissions to publish to Github Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the source code
+      - uses: actions/checkout@v4
+      # Setup dotnet, please use a global.json to ensure the right SDK is used!
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+      # Restore the local tools
+      - name: Build Docs
+        run: dotnet fsi build.fsx -- -p ci:docs
+      # Upload the static files
+      - name: Upload documentation
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./output
+
+  # GitHub Actions recommends deploying in a separate job.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
