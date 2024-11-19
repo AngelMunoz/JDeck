@@ -21,9 +21,10 @@ jobs:
     steps:
       # Checkout the source code
       - uses: actions/checkout@v4
-      # Setup dotnet, please use a global.json to ensure the right SDK is used!
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.x.x
       # Restore the local tools
       - name: Build Docs
         run: dotnet fsi build.fsx -- -p ci:docs
