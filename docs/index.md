@@ -63,7 +63,7 @@ let result: Result<ServerResponse, DecodeError> =
   Decoding.auto(
     $$"""{ "data": {{person}}, "message": "Success" }""",
     // Include your own decoder
-    JsonSerializerOptions(PropertyNameCaseInsensitive = true) |> Decode.useDecoder personDecoder
+    JsonSerializerOptions(PropertyNameCaseInsensitive = true) |> Codec.useDecoder personDecoder
   )
 
 match result with
