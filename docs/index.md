@@ -16,9 +16,9 @@ For most F# types, you can use the `Decode.auto` function to decode JSON as show
 open JDeck
 
 type Person = {
-  Name: string
-  Age: int
-  Emails: string list
+  name: string
+  age: int
+  emails: string list
 }
 let json = """{"name": "Alice", "age": 30, "emails": ["alice@name.com", "alice@age.com"] }"""
 
@@ -44,18 +44,17 @@ type Person = {
 }
 type ServerResponse = { Data: Person; Message: string }
 
-module Person =
-  let Decoder person = decode {
-    let! name = person |> Required.Property.get("name", Optional.string)
-    and! age = person |> Required.Property.get("name", Required.int)
-    and! emails = person |> Required.Property.list("emails", Optional.string)
-    return {
-      Name = name |> Option.defaultValue "<missing name>"
-      Age = age
-      // Remove any optional value from the list
-      Emails = emails |> List.choose id
-    }
+let personDecoder: Decoder<Person> = fun  person -> decode {
+  let! name = person |> Required.Property.get("name", Optional.string)
+  and! age = person |> Required.Property.get("age", Required.int)
+  and! emails = person |> Required.Property.list("emails", Optional.string)
+  return {
+    Name = name |> Option.defaultValue "<missing name>"
+    Age = age
+    // Remove any optional value from the list
+    Emails = emails |> List.choose id
   }
+}
 // Inconclusive data coming from the server
 let person = """{"name": null, "age": 30, "emails": ["alice@name.com", "alice@age.com", null] }"""
 
@@ -64,7 +63,7 @@ let result: Result<ServerResponse, DecodeError> =
   Decoding.auto(
     $$"""{ "data": {{person}}, "message": "Success" }""",
     // Include your own decoder
-    JsonSerializerOptions() |> Decode.useDecoder Person.Decoder
+    JsonSerializerOptions(PropertyNameCaseInsensitive = true) |> Decode.useDecoder personDecoder
   )
 
 match result with
