@@ -201,6 +201,7 @@ module Decode =
           =
           JsonSerializer.Serialize(writer, value, options)
 
+    [<Obsolete "This structure will be removed prior the v1.0 release, please use JDeck.Codec.useDecoder or JDeck.Codec.useCodec">]
     let useDecoder decoder (options: JsonSerializerOptions) =
       options.Converters.Insert(0, DecoderConverter<'T>(decoder))
       options
@@ -703,7 +704,8 @@ module Builders =
       generator()
 
     member inline this.Combine
-      (value, [<InlineIfLambda>] f: 'TValue -> Result<'TResult, DecodeError>) =
+      (value, [<InlineIfLambda>] f: 'TValue -> Result<'TResult, DecodeError>)
+      =
       this.Bind(value, f)
 
     member inline this.TryFinally

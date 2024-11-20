@@ -3,10 +3,14 @@
     <TargetFrameworks>netstandard2.0;net9.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Library.fsi"/>
-    <Compile Include="Library.fs"/>
+    <Compile Include="Library.fsi" />
+    <Compile Include="Library.fs" />
+    <Compile Include="Encoding.fsi" />
+    <Compile Include="Encoding.fs" />
+    <Compile Include="Serialization.fsi" />
+    <Compile Include="Serialization.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="System.Text.Json" Version="9.0.0"/>
+    <PackageReference Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="System.Text.Json" Version="9.0.0" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,64 @@
+namespace JDeck
+
+open System
+open System.Collections.Generic
+open System.Text.Json.Nodes
+
+type Encoder<'T> = 'T -> JsonNode
+
+[<AutoOpen>]
+module Encoding =
+
+  module Encode =
+
+    let inline string (value: string) = JsonValue.Create(value) :> JsonNode
+
+    let inline boolean (value: bool) = JsonValue.Create(value) :> JsonNode
+
+    let inline char (value: char) = JsonValue.Create(value) :> JsonNode
+
+    let inline guid (value: Guid) = JsonValue.Create(value) :> JsonNode
+
+    let inline byte (value: byte) = JsonValue.Create(value) :> JsonNode
+
+    let inline int (value: int) = JsonValue.Create(value) :> JsonNode
+
+    let inline int64 (value: int64) = JsonValue.Create(value) :> JsonNode
+
+    let inline float (value: float) = JsonValue.Create(value) :> JsonNode
+
+    let inline dateTime (value: DateTime) =
+      JsonValue.Create(value.ToString("o")) :> JsonNode
+
+    let inline dateTimeOffset (value: DateTimeOffset) =
+      JsonValue.Create(value.ToString("o")) :> JsonNode
+
+    let inline property
+      (name: string, value: JsonNode)
+      (jsonObject: JsonObject)
+      =
+      jsonObject.Add(name, value)
+      jsonObject
+
+    let inline sequence
+      (values: 'T seq, encoder: Encoder<'T>)
+      (jsonArray: JsonArray)
+      =
+      values |> Seq.iter(fun value -> jsonArray.Add(encoder value))
+      jsonArray :> JsonNode
+
+  type Json =
+    static member inline empty() = JsonObject.Parse("{}").AsObject()
+
+    static member inline object(values: (string * JsonNode) seq) =
+      let node = JsonObject.Parse("{}").AsObject()
+      values |> Seq.iter(node.Add)
+      node
+
+    static member inline object(values: KeyValuePair<string, JsonNode> seq) =
+      let node = JsonObject.Parse("{}").AsObject()
+      values |> Seq.iter(fun (KeyValue(key, value)) -> node.Add(key, value))
+      node
+
+    static member inline sequence(values: 'T seq, encoder: Encoder<'T>) =
+      (Encode.sequence (values, encoder) (JsonArray()))

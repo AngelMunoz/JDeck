@@ -135,6 +135,7 @@ module Decode =
     /// </summary>
     /// <param name="decoder"></param>
     /// <param name="options"></param>
+    [<Obsolete "This structure will be removed prior the v1.0 release, please use JDeck.Codec.useDecoder or JDeck.Codec.useCodec">]
     val useDecoder: decoder: Decoder<'TResult> -> options: JsonSerializerOptions -> JsonSerializerOptions
 
   /// <summary>

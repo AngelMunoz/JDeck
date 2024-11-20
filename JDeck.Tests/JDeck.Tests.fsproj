@@ -8,11 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="RequiredTests.fs"/>
-    <Compile Include="OptionalTests.fs"/>
-    <Compile Include="DecodeTests.fs"/>
-    <Compile Include="DecodeBuilderTests.fs"/>
-    <Compile Include="Program.fs"/>
+    <Compile Include="RequiredTests.fs" />
+    <Compile Include="OptionalTests.fs" />
+    <Compile Include="DecodeTests.fs" />
+    <Compile Include="DecodeBuilderTests.fs" />
+    <Compile Include="EncodingAndSerializationTests.fs" />
+    <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\JDeck\JDeck.fsproj"/>
+    <ProjectReference Include="..\JDeck\JDeck.fsproj" />
   </ItemGroup>
 
 </Project>
