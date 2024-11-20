@@ -39,7 +39,10 @@ type DecodeBuilderTests() =
     }
 
     match
-      Decoding.fromString("""{ "name": "John Doe", "age": 30 }""", personDecoder)
+      Decoding.fromString(
+        """{ "name": "John Doe", "age": 30 }""",
+        personDecoder
+      )
     with
     | Ok person ->
       Assert.AreEqual("John Doe", person.name)

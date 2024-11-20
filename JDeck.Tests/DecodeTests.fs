@@ -24,7 +24,10 @@ type DecodingTests() =
   [<TestMethod>]
   member _.``JDeck sequence can decode sequences with null values``() =
     match
-      Decoding.fromString("[1,null,3]", Decode.array(fun _ el -> Optional.int el))
+      Decoding.fromString(
+        "[1,null,3]",
+        Decode.array(fun _ el -> Optional.int el)
+      )
     with
     | Ok value ->
       let values = Seq.toArray value

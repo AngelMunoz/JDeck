@@ -146,7 +146,9 @@ type RequiredTests() =
   member _.``JDeck can decode arrays``() =
     let json = """[1, 2, 3, 4, 5]"""
 
-    match Decoding.fromString(json, Decode.array(fun _ v -> Required.int v)) with
+    match
+      Decoding.fromString(json, Decode.array(fun _ v -> Required.int v))
+    with
     | Ok value ->
       Assert.AreEqual(5, value.Length)
       Assert.AreEqual(1, value[0])
