@@ -32,5 +32,5 @@ module Encoding =
     static member inline object: values: (string * JsonNode) seq -> JsonObject
     /// <summary>Creates a JSON object from a sequence of key-value pairs.</summary>
     static member inline object: values: KeyValuePair<string, JsonNode> seq -> JsonObject
-    /// Creates a JsonArray from a sequence of values and an encoder.
+    /// <summary>Creates a JsonArray from a sequence of values and an encoder.</summary>
     static member inline sequence: values: 'T seq * encoder: Encoder<'T> -> JsonNode

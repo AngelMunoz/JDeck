@@ -5,7 +5,9 @@ open Microsoft.VisualStudio.TestTools.UnitTesting
 
 open JDeck
 
-type T1 = { name: string; age: int }
+[<AutoOpen>]
+module AutoTypes =
+  type T1 = { name: string; age: int }
 
 type TC =
   | A of int
@@ -46,7 +48,7 @@ type AutoTests() =
         ]
         tc
 
-    let options = JsonSerializerOptions() |> Decode.useDecoder tcDecoder
+    let options = JsonSerializerOptions() |> Codec.useDecoder tcDecoder
 
     match
       Decoding.auto(
@@ -113,7 +115,7 @@ type AutoTests() =
       Decoding.auto(
         $$"""{ "data": {{person}}, "message": "Success" }""",
         // Include your own decoder
-        JsonSerializerOptions(PropertyNameCaseInsensitive = true) |> Decode.useDecoder personDecoder
+        JsonSerializerOptions(PropertyNameCaseInsensitive = true) |> Codec.useDecoder personDecoder
       )
 
     match result with
