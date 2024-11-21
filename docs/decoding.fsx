@@ -53,10 +53,14 @@ let myDecoder =
 let options = JsonSerializerOptions() |> Codec.useDecoder<MyType>(myDecoder)
 
 let myobj2 = Decoding.auto<MyType>("""{"id":"a1b2c3d4"}""", options)
+// Or
+let myobj3 =
+  JsonSerializer.Deserialize<MyType>("""{"id":"a1b2c3d4"}""", options)
 
 (**
 In this way, you're able to customize the deserialization process for a specific type.
-This information leads us to show how a Decoder is defined as:
+
+Speaking of decoders, a decoder is defined as:
 
 *)
 type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
@@ -157,6 +161,7 @@ type PageStatus =
   | Idle
   | Loading
   | FailedWith of string
+  | Special of int
 
 (**
 How do you represent this in JSON? a string or an array with a string and a value? or an object with a key and a value? however you decide to represent it, you need to write a decoder for it.
@@ -184,18 +189,30 @@ module PageStatus =
   }
 
   // decodes {"status": ["failed-with", "message"] }
-  let failedDecoder el = decode {
-    let! status = Required.Property.list ("status", Required.string) el
+  // decodes {"status": ["special", <int status>] }
+  let failedOrSpecialDecoder el = decode {
+    return!
+      el
+      |> Required.Property.get(
+        "status",
+        fun el -> decode {
+          let! type' = Decode.decodeAt Required.string 0 el
 
-    match status with
-    | [ "failed-with"; message ] -> return FailedWith message
-    | _ ->
-      return!
-        DecodeError.ofError(
-          el.Clone(),
-          "The provided value is not a failed-with status"
-        )
-        |> Result.Error
+          match type' with
+          | "failed-with" ->
+            return!
+              Decode.decodeAt Required.string 1 el |> Result.map FailedWith
+          | "special" ->
+            return! Decode.decodeAt Required.int 1 el |> Result.map Special
+          | _ ->
+              return!
+                DecodeError.ofError(
+                  el,
+                  "The provided value is not either \"failed-with\" or \"special\""
+                )
+                |> Error
+        }
+      )
   }
 
 (**
@@ -213,9 +230,12 @@ Now let's use the `oneOf` function to decode the JSON object.
 let decodedValue =
   Decoding.fromString(
     """{"status": "idle"}""",
-    Decode.oneOf [ PageStatus.failedDecoder; PageStatus.idleAndLoadingDecoder ]
+    Decode.oneOf [
+      PageStatus.failedOrSpecialDecoder
+      PageStatus.idleAndLoadingDecoder
+    ]
   )
-/// val decodedValue : Result<PageStatus, DecodeError> = Ok Idle
+// val decodedValue : Result<PageStatus, DecodeError> = Ok Idle
 
 (**
 While the order of the decoders in the `oneOf` is not important,
