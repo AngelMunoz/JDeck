@@ -86,3 +86,33 @@ type DecodingTests() =
     | Ok(C value) -> Assert.AreEqual(true, value)
     | Ok _ -> Assert.Fail()
     | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``decodeAt can decode an array with multiple types``() =
+    let decoder el = decode {
+      let! number = Decode.decodeAt Required.int 0 el
+      let! str = Decode.decodeAt Required.string 1 el
+      let! boolean = Decode.decodeAt Required.boolean 2 el
+      return (number, str, boolean)
+    }
+
+    match Decoding.fromString("[1, \"string\", true]", decoder) with
+    | Ok (number, str, boolean) ->
+      Assert.AreEqual(1, number)
+      Assert.AreEqual("string", str)
+      Assert.AreEqual(true, boolean)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``decodeAt does not throw if the element is not an array``() =
+
+    let decoder el = decode {
+      let! number = Decode.decodeAt Required.int 0 el
+      let! str = Decode.decodeAt Required.string 1 el
+      let! boolean = Decode.decodeAt Required.boolean 2 el
+      return (number, str, boolean)
+    }
+
+    match Decoding.fromString("{}", decoder) with
+    | Ok _ -> Assert.Fail()
+    | Error _ -> ()

@@ -161,6 +161,39 @@ module Decode =
     let inline list ([<InlineIfLambda>] decoder) (el: JsonElement) =
       sequence decoder el |> Result.map List.ofSeq
 
+    let inline decodeAt
+      ([<InlineIfLambda>] decoder: Decoder<_>)
+      index
+      (el: JsonElement)
+      =
+      try
+        use xs = el.EnumerateArray()
+
+        match Seq.tryItem index xs with
+        | Some x -> decoder x
+        | None ->
+          DecodeError.ofError(el.Clone(), $"Index {index} not found") |> Error
+      with ex ->
+        DecodeError.ofError(el.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
+
+    let inline tryDecodeAt
+      ([<InlineIfLambda>] decoder: Decoder<_>)
+      index
+      (el: JsonElement)
+      =
+      try
+        use xs = el.EnumerateArray()
+
+        match Seq.tryItem index xs with
+        | Some x -> decoder x |> Result.map Some
+        | None -> Ok None
+      with ex ->
+        DecodeError.ofError(el.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
+
     let inline auto<'TResult> (el: JsonElement) =
       try
         el.Deserialize<'TResult>() |> Ok
@@ -409,6 +442,19 @@ module Decode =
               )
               |> DecodeError.withProperty name
             ]
+            |> Error
+
+      static member inline seqAt(name: string, index, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty(name) with
+          | true, el -> decoder el
+          | false, _ ->
+            DecodeError.ofIndexed(
+              element.Clone(),
+              index,
+              $"Property '{name}' not found"
+            )
+            |> DecodeError.withProperty name
             |> Error
 
       static member inline list(name: string, decoder: Decoder<_>) =

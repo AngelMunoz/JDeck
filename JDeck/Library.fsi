@@ -109,6 +109,25 @@ module Decode =
     val collectOneOf: decoders: Decoder<'TResult> seq -> element: JsonElement -> Result<'TResult, DecodeError list>
 
     /// <summary>
+    /// Attempts to decode a JSON element that is living inside an array at the given index.
+    /// </summary>
+    /// <param name="decoder"></param>
+    /// <param name="index"></param>
+    /// <param name="el"></param>
+    val inline decodeAt: [<InlineIfLambda>] decoder: Decoder<'TResult> -> index: int -> el: JsonElement -> Result<'TResult, DecodeError>
+
+    /// <summary>
+    /// Attempts to decode a JSON element that is living inside an array at the given index.
+    /// </summary>
+    /// <remarks>
+    /// If the element is not found, this will not fail but return an option type.
+    /// </remarks>
+    /// <param name="decoder"></param>
+    /// <param name="index"></param>
+    /// <param name="el"></param>
+    val inline tryDecodeAt: [<InlineIfLambda>] decoder: Decoder<'TResult> -> index: int -> el: JsonElement -> Result<'TResult option, DecodeError>
+
+    /// <summary>
     /// Uses the standard System.Text.Json deserialization means to deserialize a JSON element into a value of type <typeparamref name="TResult"/>.
     /// </summary>
     /// <remarks>
