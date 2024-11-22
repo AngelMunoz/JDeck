@@ -10,6 +10,7 @@ type Encoder<'T> = 'T -> JsonNode
 module Encoding =
 
   module Encode =
+    let inline Null(): JsonNode = null
 
     let inline string (value: string) = JsonValue.Create(value) :> JsonNode
 

@@ -10,6 +10,7 @@ type Encoder<'T> = 'T -> JsonNode
 module Encoding =
   /// <summary>Provides functions for encoding values to JSON nodes.</summary>
   module Encode =
+    val inline Null: unit -> JsonNode
     val inline string: value: string -> JsonNode
     val inline boolean: value: bool -> JsonNode
     val inline char: value: char -> JsonNode
