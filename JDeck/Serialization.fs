@@ -6,6 +6,8 @@ open System.Text.Json.Serialization
 open JDeck
 
 
+exception DecodingException of DecodeError
+
 type private JDeckConverter<'T>(?encoder: Encoder<'T>, ?decoder: Decoder<'T>) =
   inherit JsonConverter<'T>()
 
@@ -18,7 +20,7 @@ type private JDeckConverter<'T>(?encoder: Encoder<'T>, ?decoder: Decoder<'T>) =
 
       match decoder json.RootElement with
       | Ok value -> value
-      | Error err -> raise(JsonException(err.message))
+      | Error err -> raise(DecodingException(err))
     | None -> JsonSerializer.Deserialize<'T>(&reader)
 
   override _.Write
@@ -27,7 +29,6 @@ type private JDeckConverter<'T>(?encoder: Encoder<'T>, ?decoder: Decoder<'T>) =
     match encoder with
     | Some encoder -> encoder value |> _.WriteTo(writer)
     | None -> JsonSerializer.Serialize(writer, value, options)
-
 
 module Codec =
   let useEncoder (encoder: Encoder<'T>) (options: JsonSerializerOptions) =
