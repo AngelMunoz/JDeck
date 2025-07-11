@@ -96,7 +96,7 @@ type OptionalTests() =
   [<TestMethod>]
   member _.``JDeck can decode characters``() =
     match Decoding.fromString("\"a\"", Optional.char) with
-    | Ok(Some value) -> Assert.AreEqual('a', value)
+    | Ok(Some value) -> Assert.AreEqual<char>('a', value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
@@ -107,7 +107,7 @@ type OptionalTests() =
     match Decoding.fromString("\"ab\"", Optional.char) with
     | Ok _ -> Assert.Fail()
     | Error err ->
-      Assert.AreEqual(
+      Assert.AreEqual<string>(
         "Expecting a char but got a string of size: 2",
         err.message
       )
@@ -117,7 +117,7 @@ type OptionalTests() =
     let expected = Guid.NewGuid()
 
     match Decoding.fromString($"\"{expected}\"", Optional.guid) with
-    | Ok(Some actual) -> Assert.AreEqual(expected, actual)
+    | Ok(Some actual) -> Assert.AreEqual<Guid>(expected, actual)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
@@ -131,28 +131,28 @@ type OptionalTests() =
   [<TestMethod>]
   member _.``JDeck can decode bytes``() =
     match Decoding.fromString("10", Optional.byte) with
-    | Ok(Some value) -> Assert.AreEqual(10uy, value)
+    | Ok(Some value) -> Assert.AreEqual<byte>(10uy, value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode ints``() =
     match Decoding.fromString("10", Optional.int) with
-    | Ok(Some value) -> Assert.AreEqual(10, value)
+    | Ok(Some value) -> Assert.AreEqual<int>(10, value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode int64s``() =
     match Decoding.fromString("10", Optional.int64) with
-    | Ok(Some value) -> Assert.AreEqual(10L, value)
+    | Ok(Some value) -> Assert.AreEqual<int64>(10L, value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode floats``() =
     match Decoding.fromString("10.0", Optional.float) with
-    | Ok(Some value) -> Assert.AreEqual(10.0, value)
+    | Ok(Some value) -> Assert.AreEqual<float>(10.0, value)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
@@ -161,7 +161,7 @@ type OptionalTests() =
     let expected = DateTime.Now
 
     match Decoding.fromString($"\"{expected:O}\"", Optional.dateTime) with
-    | Ok(Some actual) -> Assert.AreEqual(expected, actual)
+    | Ok(Some actual) -> Assert.AreEqual<DateTime>(expected, actual)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
@@ -170,7 +170,7 @@ type OptionalTests() =
     let expected = DateTimeOffset.Now
 
     match Decoding.fromString($"\"{expected:O}\"", Optional.dateTimeOffset) with
-    | Ok(Some actual) -> Assert.AreEqual(expected, actual)
+    | Ok(Some actual) -> Assert.AreEqual<DateTimeOffset>(expected, actual)
     | Ok None -> Assert.Fail("Expected a value but got None")
     | Error err -> Assert.Fail(err.message)
 
@@ -232,18 +232,18 @@ type OptionalTests() =
 
     match Decoding.fromString(json, Decode.array valueDecoder) with
     | Ok value ->
-      Assert.AreEqual(5, value.Length)
-      Assert.AreEqual(1, value[0].Value)
-      Assert.AreEqual(None, value[1])
-      Assert.AreEqual(3, value[2].Value)
-      Assert.AreEqual(None, value[3])
-      Assert.AreEqual(5, value[4].Value)
+      Assert.AreEqual<int>(5, value.Length)
+      Assert.AreEqual<int>(1, value[0].Value)
+      Assert.AreEqual<int option>(None, value[1])
+      Assert.AreEqual<int>(3, value[2].Value)
+      Assert.AreEqual<int option>(None, value[3])
+      Assert.AreEqual<int>(5, value[4].Value)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
   member _.``JDeck can decode nested objects with optional properties``() =
     let addressDecoder =
-      fun _ address -> result {
+      fun _ address -> decode {
         let! city = address |> Required.Property.get("city", Required.string)
 
         and! country =
@@ -260,7 +260,7 @@ type OptionalTests() =
       }
 
     let decoder =
-      fun element -> result {
+      fun element -> decode {
         let! name = element |> Required.Property.get("name", Required.string)
         and! age = element |> Required.Property.get("age", Required.int)
 
@@ -292,14 +292,84 @@ type OptionalTests() =
 
     match value with
     | Ok value ->
-      Assert.AreEqual("John Doe", value.name)
-      Assert.AreEqual(30, value.age)
-      Assert.AreEqual(None, value.status)
-      Assert.AreEqual(2, value.addresses.Length)
-      Assert.AreEqual("New York", value.addresses[0].city)
-      Assert.AreEqual("USA", value.addresses[0].country)
-      Assert.AreEqual("12345", value.addresses[0].zipCode.Value)
-      Assert.AreEqual("London", value.addresses[1].city)
-      Assert.AreEqual("UK", value.addresses[1].country)
-      Assert.AreEqual(None, value.addresses[1].zipCode)
+      Assert.AreEqual<string>("John Doe", value.name)
+      Assert.AreEqual<int>(30, value.age)
+      Assert.AreEqual<string option>(None, value.status)
+      Assert.AreEqual<int>(2, value.addresses.Length)
+      Assert.AreEqual<string>("New York", value.addresses[0].city)
+      Assert.AreEqual<string>("USA", value.addresses[0].country)
+      Assert.AreEqual<string>("12345", value.addresses[0].zipCode.Value)
+      Assert.AreEqual<string>("London", value.addresses[1].city)
+      Assert.AreEqual<string>("UK", value.addresses[1].country)
+      Assert.AreEqual<string option>(None, value.addresses[1].zipCode)
     | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.Property.map decodes a map from an object property if present``
+    ()
+    =
+    let json = """{ "m": { "a": 1, "b": 2 } }"""
+    let decoder = Optional.Property.map("m", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok(Some map) ->
+      Assert.AreEqual<int>(2, map.Count)
+      Assert.AreEqual<int>(1, map.["a"])
+      Assert.AreEqual<int>(2, map.["b"])
+    | Ok None -> Assert.Fail()
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.Property.map returns None if property is missing``() =
+    let json = """{}"""
+    let decoder = Optional.Property.map("m", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok None -> ()
+    | Ok(Some _) -> Assert.Fail()
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.Property.map returns error if property is null``() =
+    let json = """{ "m": null }"""
+    let decoder = Optional.Property.map("m", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok _ -> Assert.Fail()
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'Object' but got `Null`"))
+
+  [<TestMethod>]
+  member _.``Optional.Property.dict decodes a dictionary from an object property if present``
+    ()
+    =
+    let json = """{ "d": { "x": 10, "y": 20 } }"""
+    let decoder = Optional.Property.dict("d", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok(Some dict) ->
+      Assert.AreEqual<int>(2, dict.Count)
+      Assert.AreEqual<int>(10, dict.["x"])
+      Assert.AreEqual<int>(20, dict.["y"])
+    | Ok None -> Assert.Fail()
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.Property.dict returns None if property is missing``() =
+    let json = """{}"""
+    let decoder = Optional.Property.dict("d", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok None -> ()
+    | Ok(Some _) -> Assert.Fail()
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.Property.dict returns error if property is null``() =
+    let json = """{ "d": null }"""
+    let decoder = Optional.Property.dict("d", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok _ -> Assert.Fail()
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'Object' but got `Null`"))

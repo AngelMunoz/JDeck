@@ -16,21 +16,21 @@ type EncodingTests() =
     let encoded = Encode.string "Hello, World!"
     let expected = "\"Hello, World!\""
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode a boolean``() =
     let encoded = Encode.boolean true
     let expected = "true"
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode a char``() =
     let encoded = Encode.char 'a'
     let expected = "\"a\""
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode a guid``() =
@@ -38,35 +38,35 @@ type EncodingTests() =
     let encoded = Encode.guid guid
     let expected = $"\"{guid.ToString()}\""
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode a byte``() =
     let encoded = Encode.byte 255uy
     let expected = "255"
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode an int``() =
     let encoded = Encode.int 42
     let expected = "42"
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode an int64``() =
     let encoded = Encode.int64 42L
     let expected = "42"
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode a float``() =
     let encoded = Encode.float 42.5
     let expected = "42.5"
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode a DateTime``() =
@@ -74,7 +74,7 @@ type EncodingTests() =
     let encoded = Encode.dateTime dateTime
     let expected = $"\"{dateTime:o}\""
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode can encode a DateTimeOffset``() =
@@ -82,7 +82,7 @@ type EncodingTests() =
     let encoded = Encode.dateTimeOffset dateTimeOffset
     let expected = $"\"{dateTimeOffset:o}\""
 
-    Assert.AreEqual(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
   member _.``Encode an object``() =
@@ -92,7 +92,7 @@ type EncodingTests() =
 
     let expected = "{\"name\":\"John\",\"age\":30}"
 
-    Assert.AreEqual(expected, encoded)
+    Assert.AreEqual<string>(expected, encoded)
 
 
   [<TestMethod>]
@@ -117,7 +117,7 @@ type EncodingTests() =
     let expected =
       "{\"name\":\"John\",\"age\":30,\"isAlive\":true,\"address\":{\"street\":\"21 2nd Street\",\"city\":\"New York\",\"state\":\"NY\",\"postalCode\":\"10021\"}}"
 
-    Assert.AreEqual(expected, encoded)
+    Assert.AreEqual<string>(expected, encoded)
 
 type T1 =
   | A of int
@@ -142,14 +142,17 @@ type SerializationTests() =
     let encodedB = JsonSerializer.Serialize(T1.B "Hello, World!", options)
     let encodedC = JsonSerializer.Serialize(T1.C true, options)
 
-    Assert.AreEqual("42", encodedA)
-    Assert.AreEqual("\"Hello, World!\"", encodedB)
-    Assert.AreEqual("true", encodedC)
+    Assert.AreEqual<string>("42", encodedA)
+    Assert.AreEqual<string>("\"Hello, World!\"", encodedB)
+    Assert.AreEqual<string>("true", encodedC)
 
   [<TestMethod>]
   member _.``encoding fails when encoder is not registered``() =
 
-    Assert.ThrowsException(fun _ -> JsonSerializer.Serialize(T1.A 42) |> ignore)
+    Assert.ThrowsException<System.NotSupportedException>(fun _ ->
+      JsonSerializer.Serialize(T1.A 42) |> ignore
+    )
+    |> ignore
 
 
   [<TestMethod>]
@@ -170,16 +173,17 @@ type SerializationTests() =
     let decodedB = JsonSerializer.Deserialize<T1>("\"Hello, World!\"", options)
     let decodedC = JsonSerializer.Deserialize<T1>("true", options)
 
-    Assert.AreEqual(T1.A 42, decodedA)
-    Assert.AreEqual(T1.B "Hello, World!", decodedB)
-    Assert.AreEqual(T1.C true, decodedC)
+    Assert.AreEqual<T1>(T1.A 42, decodedA)
+    Assert.AreEqual<T1>(T1.B "Hello, World!", decodedB)
+    Assert.AreEqual<T1>(T1.C true, decodedC)
 
   [<TestMethod>]
   member _.``decoding fails when decoder is not registered``() =
 
-    Assert.ThrowsException(fun _ ->
+    Assert.ThrowsException<System.NotSupportedException>(fun _ ->
       JsonSerializer.Deserialize<T1>("42") |> ignore
     )
+    |> ignore
 
   [<TestMethod>]
   member _.``Codec useCodec works to serialize and deserialize when registered``
@@ -205,14 +209,14 @@ type SerializationTests() =
     let encodedB = JsonSerializer.Serialize(T1.B "Hello, World!", options)
     let encodedC = JsonSerializer.Serialize(T1.C true, options)
 
-    Assert.AreEqual("42", encodedA)
-    Assert.AreEqual("\"Hello, World!\"", encodedB)
-    Assert.AreEqual("true", encodedC)
+    Assert.AreEqual<string>("42", encodedA)
+    Assert.AreEqual<string>("\"Hello, World!\"", encodedB)
+    Assert.AreEqual<string>("true", encodedC)
 
     let decodedA = JsonSerializer.Deserialize<T1>("42", options)
     let decodedB = JsonSerializer.Deserialize<T1>("\"Hello, World!\"", options)
     let decodedC = JsonSerializer.Deserialize<T1>("true", options)
 
-    Assert.AreEqual(T1.A 42, decodedA)
-    Assert.AreEqual(T1.B "Hello, World!", decodedB)
-    Assert.AreEqual(T1.C true, decodedC)
+    Assert.AreEqual<T1>(T1.A 42, decodedA)
+    Assert.AreEqual<T1>(T1.B "Hello, World!", decodedB)
+    Assert.AreEqual<T1>(T1.C true, decodedC)

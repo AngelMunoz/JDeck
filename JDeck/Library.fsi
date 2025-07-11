@@ -35,6 +35,8 @@ module DecodeError =
 
 type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
 type IndexedDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeError>
+
+type IndexedMapDecoder<'TValue> = string -> JsonElement -> Result<'TValue, DecodeError>
 type CollectErrorsDecoder<'TResult> = JsonElement -> Result<'TResult, DecodeError list>
 type IndexedCollectErrorsDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeError list>
 
@@ -66,11 +68,51 @@ module Decode =
       [<InlineIfLambda>] decoder: IndexedCollectErrorsDecoder<'a> -> el: JsonElement -> Result<'a seq, DecodeError list>
 
     /// <summary>
+    /// Decodes a JSON object into an FSharpMap where the keys are strings and the value is of type <typeparamref name="TValue"/>
+    /// </summary>
+    /// <param name="decoder"></param>
+    /// <param name="el"></param>
+    val inline map:
+      [<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue> ->
+      el: JsonElement ->
+        Result<Map<string, 'TValue>, DecodeError>
+
+    /// <summary>
+    /// Decodes a JSON object into an FSharpMap where the keys are strings and the value is of type <typeparamref name="TValue"/>
+    /// </summary>
+    /// <param name="decoder"></param>
+    /// <param name="el"></param>
+    val inline mapCol:
+      [<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue> ->
+      el: JsonElement ->
+        Result<Map<string, 'TValue>, DecodeError seq>
+
+    /// <summary>
+    /// Decodes a JSON object into a BCL Dictionary where the keys are strings and the value is of type <typeparamref name="TValue"/>
+    /// </summary>
+    /// <param name="decoder"></param>
+    /// <param name="el"></param>
+    val inline dict:
+      [<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue> ->
+      el: JsonElement ->
+        Result<System.Collections.Generic.Dictionary<string, 'TValue>, DecodeError>
+
+    /// <summary>
+    /// Decodes a JSON object into a BCL Dictionary where the keys are strings and the value is of type <typeparamref name="TValue"/>
+    /// </summary>
+    /// <param name="decoder"></param>
+    /// <param name="el"></param>
+    val inline dictCol:
+      [<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue> ->
+      el: JsonElement ->
+        Result<System.Collections.Generic.Dictionary<string, 'TValue>, DecodeError seq>
+
+    /// <summary>
     /// Decodes a JSON array element into a value of type <typeparamref name="TResult"/>.
     /// </summary>
     /// <remarks>
     /// If a failure is encountered in the decoding process,
-    /// the decoding stops there and the error is returned, the rest of the array is not decoded.
+    /// the decoding stops there, and the error is returned, the rest of the array is not decoded.
     /// </remarks>
     /// <param name="decoder"></param>
     /// <param name="el"></param>
@@ -114,7 +156,8 @@ module Decode =
     /// <param name="decoder"></param>
     /// <param name="index"></param>
     /// <param name="el"></param>
-    val inline decodeAt: [<InlineIfLambda>] decoder: Decoder<'TResult> -> index: int -> el: JsonElement -> Result<'TResult, DecodeError>
+    val inline decodeAt:
+      [<InlineIfLambda>] decoder: Decoder<'TResult> -> index: int -> el: JsonElement -> Result<'TResult, DecodeError>
 
     /// <summary>
     /// Attempts to decode a JSON element that is living inside an array at the given index.
@@ -125,7 +168,35 @@ module Decode =
     /// <param name="decoder"></param>
     /// <param name="index"></param>
     /// <param name="el"></param>
-    val inline tryDecodeAt: [<InlineIfLambda>] decoder: Decoder<'TResult> -> index: int -> el: JsonElement -> Result<'TResult option, DecodeError>
+    val inline tryDecodeAt:
+      [<InlineIfLambda>] decoder: Decoder<'TResult> ->
+      index: int ->
+      el: JsonElement ->
+        Result<'TResult option, DecodeError>
+
+    /// <summary>
+    /// Attempts to decode a JSON element that is living inside an array at the given key.
+    /// </summary>
+    /// <param name="decoder"></param>
+    /// <param name="key"></param>
+    /// <param name="el"></param>
+    val inline decodeAtKey:
+      [<InlineIfLambda>] decoder: Decoder<'TResult> -> key: string -> el: JsonElement -> Result<'TResult, DecodeError>
+
+    /// <summary>
+    /// Attempts to decode a JSON element that is living inside an array at the given key.
+    /// </summary>
+    /// <remarks>
+    /// If the element is not found, this will not fail but return an option type.
+    /// </remarks>
+    /// <param name="decoder"></param>
+    /// <param name="key"></param>
+    /// <param name="el"></param>
+    val inline tryDecodeAtKey:
+      [<InlineIfLambda>] decoder: Decoder<'TResult> ->
+      key: string ->
+      el: JsonElement ->
+        Result<'TResult option, DecodeError>
 
     /// <summary>
     /// Uses the standard System.Text.Json deserialization means to deserialize a JSON element into a value of type <typeparamref name="TResult"/>.
@@ -278,6 +349,27 @@ module Decode =
         name: string * decoder: CollectErrorsDecoder<'TResult> ->
           (JsonElement -> Result<'TResult array, DecodeError list>)
 
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <remarks>
+      /// The decoding process will stop at the first failure, and the error will be returned.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline map:
+        name: string * decoder: Decoder<'TValue> -> (JsonElement -> Result<Map<string, 'TValue>, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      /// <remarks>The decoding process will stop at the first failure, and the error will be returned.</remarks>
+      static member inline dict:
+        name: string * decoder: Decoder<'TValue> ->
+          (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue>, DecodeError>)
+
   /// <summary>
   /// Contains a set of decoders that are not required to decode to the particular type and will not fail.
   /// These decoders will return an option type. even if the value is null or is absent from the JSON element.
@@ -424,6 +516,27 @@ module Decode =
       static member inline array:
         name: string * decoder: CollectErrorsDecoder<'TResult> ->
           (JsonElement -> Result<'TResult array option, DecodeError list>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <remarks>
+      /// The decoding process will stop at the first failure, and the error will be returned.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline map:
+        name: string * decoder: Decoder<'TValue> -> (JsonElement -> Result<Map<string, 'TValue> option, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      /// <remarks>The decoding process will stop at the first failure, and the error will be returned.</remarks>
+      static member inline dict:
+        name: string * decoder: Decoder<'TValue> ->
+          (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue> option, DecodeError>)
 
 /// <summary>
 /// Provides an in-the-box computation expression that can be used to decode JSON elements.

@@ -32,8 +32,8 @@ type AutoTests() =
   member _.``JDeck can auto decode things``() =
     match Decoding.auto """{ "name": "John Doe", "age": 30 }""" with
     | Ok person ->
-      Assert.AreEqual("John Doe", person.name)
-      Assert.AreEqual(30, person.age)
+      Assert.AreEqual<string>("John Doe", person.name)
+      Assert.AreEqual<int>(30, person.age)
     | Error err -> Assert.Fail(err.message)
 
 
@@ -57,11 +57,11 @@ type AutoTests() =
       )
     with
     | Ok t2 ->
-      Assert.AreEqual("John Doe", t2.t1.name)
-      Assert.AreEqual(30, t2.t1.age)
+      Assert.AreEqual<string>("John Doe", t2.t1.name)
+      Assert.AreEqual<int>(30, t2.t1.age)
 
       match t2.tcustom with
-      | A a -> Assert.AreEqual(10, a)
+      | A a -> Assert.AreEqual<int>(10, a)
       | _ -> Assert.Fail()
 
     | Error err -> Assert.Fail(err.message)
@@ -81,11 +81,11 @@ type AutoTests() =
     match result with
     | Ok person ->
 
-      Assert.AreEqual("Alice", person.Name)
-      Assert.AreEqual(30, person.Age)
-      Assert.AreEqual(2, person.Emails.Length)
-      Assert.AreEqual("alice@name.com", person.Emails[0])
-      Assert.AreEqual("alice@age.com", person.Emails[1])
+      Assert.AreEqual<string>("Alice", person.Name)
+      Assert.AreEqual<int>(30, person.Age)
+      Assert.AreEqual<int>(2, person.Emails.Length)
+      Assert.AreEqual<string>("alice@name.com", person.Emails[0])
+      Assert.AreEqual<string>("alice@age.com", person.Emails[1])
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
@@ -115,14 +115,15 @@ type AutoTests() =
       Decoding.auto(
         $$"""{ "data": {{person}}, "message": "Success" }""",
         // Include your own decoder
-        JsonSerializerOptions(PropertyNameCaseInsensitive = true) |> Codec.useDecoder personDecoder
+        JsonSerializerOptions(PropertyNameCaseInsensitive = true)
+        |> Codec.useDecoder personDecoder
       )
 
     match result with
     | Ok { Data = data; Message = message } ->
-      Assert.AreEqual("Success", message)
-      Assert.AreEqual(30, data.Age)
-      Assert.AreEqual(2, data.Emails.Length)
-      Assert.AreEqual("alice@name.com", data.Emails[0])
-      Assert.AreEqual("alice@age.com", data.Emails[1])
+      Assert.AreEqual<string>("Success", message)
+      Assert.AreEqual<int>(30, data.Age)
+      Assert.AreEqual<int>(2, data.Emails.Length)
+      Assert.AreEqual<string>("alice@name.com", data.Emails[0])
+      Assert.AreEqual<string>("alice@age.com", data.Emails[1])
     | Error err -> Assert.Fail(err.message)

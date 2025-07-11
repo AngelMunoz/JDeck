@@ -66,6 +66,9 @@ type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
 type IndexedDecoder<'TResult> =
   int -> JsonElement -> Result<'TResult, DecodeError>
 
+type IndexedMapDecoder<'TValue> =
+  string -> JsonElement -> Result<'TValue, DecodeError>
+
 type CollectErrorsDecoder<'TResult> =
   JsonElement -> Result<'TResult, DecodeError list>
 
@@ -108,6 +111,45 @@ module Seq =
     else
       Ok(values :> seq<_>)
 
+  let inline collectPropertiesUntilError
+    ([<InlineIfLambda>] valueDecoder: IndexedMapDecoder<'TValue>)
+    (el: JsonElement)
+    =
+    use mutable xs = el.EnumerateObject()
+    let mutable error = None
+    let collected = ResizeArray<string * 'TValue>()
+
+    while error.IsNone && xs.MoveNext() do
+      let key = xs.Current.Name
+
+      match valueDecoder key xs.Current.Value with
+      | Ok value -> collected.Add(key, value)
+      | Error err -> error <- Some(err, key)
+
+    match error with
+    | Some(error, key) -> Error(error |> DecodeError.withProperty key)
+    | None -> Ok(collected :> seq<_>)
+
+  let inline collectProperties
+    ([<InlineIfLambda>] valueDecoder: IndexedMapDecoder<'TValue>)
+    (el: JsonElement)
+    =
+    use mutable xs = el.EnumerateObject()
+    let collected = ResizeArray<string * 'TValue>()
+    let errors = ResizeArray<DecodeError>()
+
+    while xs.MoveNext() do
+      let key = xs.Current.Name
+
+      match valueDecoder key xs.Current.Value with
+      | Ok value -> collected.Add(key, value)
+      | Error err -> errors.Add(err |> DecodeError.withProperty key)
+
+    if errors.Count > 0 then
+      Error(errors :> seq<_>)
+    else
+      Ok(collected :> seq<_>)
+
 [<AutoOpen>]
 module Decode =
   module Decode =
@@ -122,6 +164,68 @@ module Decode =
       (el: JsonElement)
       =
       el.EnumerateArray() |> Seq.collectErrors decoder
+
+    let inline map
+      ([<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue>)
+      (el: JsonElement)
+      =
+      match el.ValueKind with
+      | JsonValueKind.Object ->
+        try
+          el |> Seq.collectPropertiesUntilError decoder |> Result.map Map.ofSeq
+        with ex ->
+          DecodeError.ofError(el.Clone(), "")
+          |> DecodeError.withException ex
+          |> Error
+      | kind ->
+        DecodeError.ofError(el.Clone(), $"Expected 'Object' but got `{kind}`")
+        |> Error
+
+    let inline mapCol
+      ([<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue>)
+      (el: JsonElement)
+      =
+      el |> Seq.collectProperties decoder |> Result.map Map.ofSeq
+
+    let inline dict
+      ([<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue>)
+      (el: JsonElement)
+      =
+      match el.ValueKind with
+      | JsonValueKind.Object ->
+        try
+          el
+          |> Seq.collectPropertiesUntilError decoder
+          |> Result.map(fun kv ->
+            let dict = System.Collections.Generic.Dictionary<string, 'TValue>()
+
+            for k, v in kv do
+              dict.Add(k, v)
+
+            dict
+          )
+        with ex ->
+          DecodeError.ofError(el.Clone(), "")
+          |> DecodeError.withException ex
+          |> Error
+      | kind ->
+        DecodeError.ofError(el.Clone(), $"Expected 'Object' but got `{kind}`")
+        |> Error
+
+    let inline dictCol
+      ([<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue>)
+      (el: JsonElement)
+      =
+      el
+      |> Seq.collectProperties decoder
+      |> Result.map(fun kv ->
+        let dict = System.Collections.Generic.Dictionary<string, 'TValue>()
+
+        for k, v in kv do
+          dict.Add(k, v)
+
+        dict
+      )
 
     let oneOf (decoders: Decoder<_> seq) element =
       let mutable resolvedValue = None
@@ -192,6 +296,25 @@ module Decode =
       with ex ->
         DecodeError.ofError(el.Clone(), "")
         |> DecodeError.withException ex
+        |> Error
+
+    let inline decodeAtKey
+      ([<InlineIfLambda>] decoder: Decoder<_>)
+      (key: string)
+      (el: JsonElement)
+      =
+      el.GetProperty(key) |> decoder
+
+    let inline tryDecodeAtKey
+      ([<InlineIfLambda>] decoder: Decoder<_>)
+      (key: string)
+      (el: JsonElement)
+      =
+      match el.TryGetProperty key with
+      | true, x -> decoder x |> Result.map Some
+      | false, _ ->
+        DecodeError.ofError(el.Clone(), $"Key {key} not found")
+        |> DecodeError.withProperty key
         |> Error
 
     let inline auto<'TResult> (el: JsonElement) =
@@ -477,6 +600,24 @@ module Decode =
         fun (element: JsonElement) ->
           element |> Property.seq(name, decoder) |> Result.map Array.ofSeq
 
+      static member inline map(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.map (fun _ -> decoder) el
+          | false, _ ->
+            DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+            |> DecodeError.withProperty name
+            |> Error
+
+      static member inline dict(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.dict (fun _ -> decoder) el
+          | false, _ ->
+            DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
+            |> DecodeError.withProperty name
+            |> Error
+
   module Optional =
 
     let inline internal shell
@@ -709,6 +850,18 @@ module Decode =
             | Some v -> v |> Array.ofSeq |> Some
             | None -> None
           )
+
+      static member inline map(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.map (fun _ -> decoder) el |> Result.map Some
+          | false, _ -> Ok None
+
+      static member inline dict(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.dict (fun _ -> decoder) el |> Result.map Some
+          | false, _ -> Ok None
 
 [<AutoOpen>]
 module Builders =

@@ -21,7 +21,7 @@ type DecodeBuilderTests() =
     }
 
     match work with
-    | Ok value -> Assert.AreEqual(10, value)
+    | Ok value -> Assert.AreEqual<int>(10, value)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
@@ -45,9 +45,9 @@ type DecodeBuilderTests() =
       )
     with
     | Ok person ->
-      Assert.AreEqual("John Doe", person.name)
-      Assert.AreEqual(30, person.age)
-      Assert.AreEqual(None, person.email)
+      Assert.AreEqual<string>("John Doe", person.name)
+      Assert.AreEqual<int>(30, person.age)
+      Assert.AreEqual<string option>(None, person.email)
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
@@ -92,13 +92,13 @@ type DecodeBuilderTests() =
       )
     with
     | Ok person ->
-      Assert.AreEqual("John Doe", person.name)
-      Assert.AreEqual(30, person.age)
-      Assert.AreEqual(None, person.email)
-      Assert.AreEqual(None, person.city)
-      Assert.AreEqual("USA", person.country)
-      Assert.AreEqual(None, person.phone)
-      Assert.AreEqual(None, person.address)
-      Assert.AreEqual(None, person.postalCode)
-      Assert.AreEqual("123 Main St", person.street.Value)
+      Assert.AreEqual<string>("John Doe", person.name)
+      Assert.AreEqual<int>(30, person.age)
+      Assert.AreEqual<string option>(None, person.email)
+      Assert.AreEqual<string option>(None, person.city)
+      Assert.AreEqual<string>("USA", person.country)
+      Assert.AreEqual<string option>(None, person.phone)
+      Assert.AreEqual<string option>(None, person.address)
+      Assert.AreEqual<string option>(None, person.postalCode)
+      Assert.AreEqual<string>("123 Main St", person.street.Value)
     | Error err -> Assert.Fail(err.message)

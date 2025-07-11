@@ -18,8 +18,9 @@ type DecodingTests() =
     match
       Decoding.fromString("[1,2,3]", Decode.array(fun _ el -> Required.int el))
     with
-    | Ok value -> Seq.iteri (fun i v -> Assert.AreEqual(i + 1, v)) value
-    | Error err -> Assert.Fail(err.message)
+    | Ok value ->
+      Seq.iteri (fun i (v: int) -> Assert.AreEqual<int>(i + 1, v)) value
+    | Error err -> Assert.Fail err.message
 
   [<TestMethod>]
   member _.``JDeck sequence can decode sequences with null values``() =
@@ -31,11 +32,11 @@ type DecodingTests() =
     with
     | Ok value ->
       let values = Seq.toArray value
-      Assert.AreEqual(3, values.Length)
-      Assert.AreEqual(Some 1, values[0])
-      Assert.AreEqual(None, values[1])
-      Assert.AreEqual(Some 3, values[2])
-    | Error err -> Assert.Fail(err.message)
+      Assert.AreEqual<int>(3, values.Length)
+      Assert.AreEqual<int option>(Some 1, values[0])
+      Assert.AreEqual<int option>(None, values[1])
+      Assert.AreEqual<int option>(Some 3, values[2])
+    | Error err -> Assert.Fail err.message
 
   [<TestMethod>]
   member _.``JDeck can use oneOf to decode unions``() =
@@ -57,24 +58,24 @@ type DecodingTests() =
     let unionDecoder =
       Required.Property.get(
         "value",
-        (Decode.oneOf [ cDecoder; bDecoder; aDecoder ])
+        Decode.oneOf [ cDecoder; bDecoder; aDecoder ]
       )
 
     match Decoding.fromString("""{ "value": "string" }""", unionDecoder) with
-    | Ok(A value) -> Assert.AreEqual("string", value)
+    | Ok(A value) -> Assert.AreEqual<string>("string", value)
     | Ok _ -> Assert.Fail()
-    | Error err -> Assert.Fail(err.message)
+    | Error err -> Assert.Fail err.message
 
     let unionDecoder =
       Required.Property.get(
         "value",
-        (Decode.oneOf [ aDecoder; cDecoder; bDecoder ])
+        Decode.oneOf [ aDecoder; cDecoder; bDecoder ]
       )
 
     match Decoding.fromString("""{ "value": 1 }""", unionDecoder) with
-    | Ok(B value) -> Assert.AreEqual(1, value)
+    | Ok(B value) -> Assert.AreEqual<int>(1, value)
     | Ok _ -> Assert.Fail()
-    | Error err -> Assert.Fail(err.message)
+    | Error err -> Assert.Fail err.message
 
     let unionDecoder =
       Required.Property.get(
@@ -83,9 +84,9 @@ type DecodingTests() =
       )
 
     match Decoding.fromString("""{ "value": true }""", unionDecoder) with
-    | Ok(C value) -> Assert.AreEqual(true, value)
+    | Ok(C value) -> Assert.AreEqual<bool>(true, value)
     | Ok _ -> Assert.Fail()
-    | Error err -> Assert.Fail(err.message)
+    | Error err -> Assert.Fail err.message
 
   [<TestMethod>]
   member _.``decodeAt can decode an array with multiple types``() =
@@ -97,11 +98,11 @@ type DecodingTests() =
     }
 
     match Decoding.fromString("[1, \"string\", true]", decoder) with
-    | Ok (number, str, boolean) ->
-      Assert.AreEqual(1, number)
-      Assert.AreEqual("string", str)
-      Assert.AreEqual(true, boolean)
-    | Error err -> Assert.Fail(err.message)
+    | Ok(number, str, boolean) ->
+      Assert.AreEqual<int>(1, number)
+      Assert.AreEqual<string>("string", str)
+      Assert.AreEqual<bool>(true, boolean)
+    | Error err -> Assert.Fail err.message
 
   [<TestMethod>]
   member _.``decodeAt does not throw if the element is not an array``() =
@@ -116,3 +117,52 @@ type DecodingTests() =
     match Decoding.fromString("{}", decoder) with
     | Ok _ -> Assert.Fail()
     | Error _ -> ()
+
+  [<TestMethod>]
+  member _.``decodeAtKey can extract a value by key from an object``() =
+    let decoder el = decode {
+      let! value = Decode.decodeAtKey Required.int "age" el
+      return value
+    }
+
+    match Decoding.fromString("""{ "age": 42 }""", decoder) with
+    | Ok value -> Assert.AreEqual<int>(42, value)
+    | Error err -> Assert.Fail err.message
+
+  [<TestMethod>]
+  member _.``decodeAtKey throws if key is missing``() =
+    let decoder el = decode {
+      let! value = Decode.decodeAtKey Required.int "missing" el
+      return value
+    }
+
+    Assert.ThrowsException<System.Collections.Generic.KeyNotFoundException>(fun
+                                                                                () ->
+      match Decoding.fromString("""{ "age": 42 }""", decoder) with
+      | Ok _ -> ()
+      | Error _ -> ()
+    )
+    |> ignore
+
+  [<TestMethod>]
+  member _.``tryDecodeAtKey returns Some if key exists``() =
+    let decoder el = decode {
+      let! value = Decode.tryDecodeAtKey Required.int "age" el
+      return value
+    }
+
+    match Decoding.fromString("""{ "age": 42 }""", decoder) with
+    | Ok(Some value) -> Assert.AreEqual<int>(42, value)
+    | Ok None -> Assert.Fail()
+    | Error err -> Assert.Fail err.message
+
+  [<TestMethod>]
+  member _.``tryDecodeAtKey returns Error if key is missing``() =
+    let decoder el = decode {
+      let! value = Decode.tryDecodeAtKey Required.int "missing" el
+      return value
+    }
+
+    match Decoding.fromString("""{ "age": 42 }""", decoder) with
+    | Ok _ -> Assert.Fail()
+    | Error err -> Assert.IsTrue(err.message.Contains "Key missing not found")
