@@ -75,6 +75,10 @@ type CollectErrorsDecoder<'TResult> =
 type IndexedCollectErrorsDecoder<'TResult> =
   int -> JsonElement -> Result<'TResult, DecodeError list>
 
+type IndexedMapCollectErrorsDecoder<'TValue> =
+  string -> JsonElement -> Result<'TValue, DecodeError list>
+
+
 module Seq =
   let inline collectErrors
     ([<InlineIfLambda>] f:
@@ -111,44 +115,47 @@ module Seq =
     else
       Ok(values :> seq<_>)
 
-  let inline collectPropertiesUntilError
-    ([<InlineIfLambda>] valueDecoder: IndexedMapDecoder<'TValue>)
-    (el: JsonElement)
-    =
-    use mutable xs = el.EnumerateObject()
-    let mutable error = None
-    let collected = ResizeArray<string * 'TValue>()
-
-    while error.IsNone && xs.MoveNext() do
-      let key = xs.Current.Name
-
-      match valueDecoder key xs.Current.Value with
-      | Ok value -> collected.Add(key, value)
-      | Error err -> error <- Some(err, key)
-
-    match error with
-    | Some(error, key) -> Error(error |> DecodeError.withProperty key)
-    | None -> Ok(collected :> seq<_>)
-
   let inline collectProperties
-    ([<InlineIfLambda>] valueDecoder: IndexedMapDecoder<'TValue>)
+    ([<InlineIfLambda>] valueDecoder: IndexedMapCollectErrorsDecoder<'TValue>)
     (el: JsonElement)
     =
     use mutable xs = el.EnumerateObject()
-    let collected = ResizeArray<string * 'TValue>()
     let errors = ResizeArray<DecodeError>()
+    let collected = ResizeArray<string * 'TValue>()
 
     while xs.MoveNext() do
       let key = xs.Current.Name
 
       match valueDecoder key xs.Current.Value with
       | Ok value -> collected.Add(key, value)
-      | Error err -> errors.Add(err |> DecodeError.withProperty key)
+      | Error err ->
+        errors.AddRange(
+          err |> List.map(fun e -> e |> DecodeError.withProperty key)
+        )
 
     if errors.Count > 0 then
       Error(errors :> seq<_>)
     else
       Ok(collected :> seq<_>)
+
+  let inline collectPropertiesUntilError
+    ([<InlineIfLambda>] valueDecoder: IndexedMapDecoder<'TValue>)
+    (el: JsonElement)
+    =
+    use mutable xs = el.EnumerateObject()
+    let collected = ResizeArray<string * 'TValue>()
+    let mutable error = None
+
+    while error.IsNone && xs.MoveNext() do
+      let key = xs.Current.Name
+
+      match valueDecoder key xs.Current.Value with
+      | Ok value -> collected.Add(key, value)
+      | Error err -> error <- Some(err |> DecodeError.withProperty key)
+
+    match error with
+    | Some error -> Error error
+    | None -> Ok(collected :> seq<_>)
 
 [<AutoOpen>]
 module Decode =
@@ -182,7 +189,7 @@ module Decode =
         |> Error
 
     let inline mapCol
-      ([<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue>)
+      ([<InlineIfLambda>] decoder: IndexedMapCollectErrorsDecoder<'TValue>)
       (el: JsonElement)
       =
       el |> Seq.collectProperties decoder |> Result.map Map.ofSeq
@@ -213,7 +220,7 @@ module Decode =
         |> Error
 
     let inline dictCol
-      ([<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue>)
+      ([<InlineIfLambda>] decoder: IndexedMapCollectErrorsDecoder<'TValue>)
       (el: JsonElement)
       =
       el
@@ -609,6 +616,22 @@ module Decode =
             |> DecodeError.withProperty name
             |> Error
 
+      static member inline map
+        (name: string, decoder: IndexedMapCollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.mapCol decoder el |> Result.mapError List.ofSeq
+          | false, _ ->
+            [
+              DecodeError.ofError(
+                element.Clone(),
+                $"Property '{name}' not found"
+              )
+              |> DecodeError.withProperty name
+            ]
+            |> Error
+
       static member inline dict(name: string, decoder: Decoder<_>) =
         fun (element: JsonElement) ->
           match element.TryGetProperty name with
@@ -616,6 +639,22 @@ module Decode =
           | false, _ ->
             DecodeError.ofError(element.Clone(), $"Property '{name}' not found")
             |> DecodeError.withProperty name
+            |> Error
+
+      static member inline dict
+        (name: string, decoder: IndexedMapCollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.dictCol decoder el |> Result.mapError List.ofSeq
+          | false, _ ->
+            [
+              DecodeError.ofError(
+                element.Clone(),
+                $"Property '{name}' not found"
+              )
+              |> DecodeError.withProperty name
+            ]
             |> Error
 
   module Optional =
@@ -857,10 +896,32 @@ module Decode =
           | true, el -> Decode.map (fun _ -> decoder) el |> Result.map Some
           | false, _ -> Ok None
 
+      static member inline map
+        (name: string, decoder: IndexedMapCollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el ->
+            Decode.mapCol decoder el
+            |> Result.mapError List.ofSeq
+            |> Result.map Some
+          | false, _ -> Ok None
+
       static member inline dict(name: string, decoder: Decoder<_>) =
         fun (element: JsonElement) ->
           match element.TryGetProperty name with
           | true, el -> Decode.dict (fun _ -> decoder) el |> Result.map Some
+          | false, _ -> Ok None
+
+      static member inline dict
+        (name: string, decoder: IndexedMapCollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el ->
+            Decode.dictCol decoder el
+            |> Result.mapError List.ofSeq
+            |> Result.map Some
           | false, _ -> Ok None
 
 [<AutoOpen>]

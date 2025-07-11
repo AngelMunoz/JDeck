@@ -39,6 +39,7 @@ type IndexedDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeErr
 type IndexedMapDecoder<'TValue> = string -> JsonElement -> Result<'TValue, DecodeError>
 type CollectErrorsDecoder<'TResult> = JsonElement -> Result<'TResult, DecodeError list>
 type IndexedCollectErrorsDecoder<'TResult> = int -> JsonElement -> Result<'TResult, DecodeError list>
+type IndexedMapCollectErrorsDecoder<'TValue> = string -> JsonElement -> Result<'TValue, DecodeError list>
 
 [<AutoOpen>]
 module Decode =
@@ -83,7 +84,7 @@ module Decode =
     /// <param name="decoder"></param>
     /// <param name="el"></param>
     val inline mapCol:
-      [<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue> ->
+      [<InlineIfLambda>] decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
       el: JsonElement ->
         Result<Map<string, 'TValue>, DecodeError seq>
 
@@ -103,7 +104,7 @@ module Decode =
     /// <param name="decoder"></param>
     /// <param name="el"></param>
     val inline dictCol:
-      [<InlineIfLambda>] decoder: IndexedMapDecoder<'TValue> ->
+      [<InlineIfLambda>] decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
       el: JsonElement ->
         Result<System.Collections.Generic.Dictionary<string, 'TValue>, DecodeError seq>
 
@@ -363,12 +364,40 @@ module Decode =
       /// <summary>
       /// Takes a property name and applies the given decoder to the values on the properties of the object
       /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline map:
+        name: string * decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
+          (JsonElement -> Result<Map<string, 'TValue>, DecodeError list>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
       /// <param name="name"></param>
       /// <param name="decoder"></param>
       /// <remarks>The decoding process will stop at the first failure, and the error will be returned.</remarks>
       static member inline dict:
         name: string * decoder: Decoder<'TValue> ->
           (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue>, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline dict:
+        name: string * decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
+          (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue>, DecodeError list>)
 
   /// <summary>
   /// Contains a set of decoders that are not required to decode to the particular type and will not fail.
@@ -531,12 +560,48 @@ module Decode =
       /// <summary>
       /// Takes a property name and applies the given decoder to the values on the properties of the object
       /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline map:
+        name: string * decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
+          (JsonElement -> Result<Map<string, 'TValue> option, DecodeError list>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
       /// <param name="name"></param>
       /// <param name="decoder"></param>
       /// <remarks>The decoding process will stop at the first failure, and the error will be returned.</remarks>
       static member inline dict:
         name: string * decoder: Decoder<'TValue> ->
           (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue> option, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline dict:
+        name: string * decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
+          (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue> option, DecodeError list>)
 
 /// <summary>
 /// Provides an in-the-box computation expression that can be used to decode JSON elements.

@@ -351,3 +351,138 @@ type RequiredTests() =
     | Ok _ -> Assert.Fail()
     | Error err ->
       Assert.IsTrue(err.message.Contains("Expected 'Number' but got `String`"))
+
+  [<TestMethod>]
+  member _.``Required.Property.map collector overload decodes a map from an object property and collects errors``
+    ()
+    =
+    let json = """{ "prop": { "a": 1, "b": 2, "c": 3 } }"""
+
+    let decoder =
+      Required.Property.map(
+        "prop",
+        fun _key element ->
+          Required.int element |> Result.mapError List.singleton
+      )
+
+    match Decoding.fromStringCol(json, decoder) with
+    | Ok map ->
+      Assert.AreEqual<int>(3, map.Count)
+      Assert.AreEqual<int>(1, map.["a"])
+      Assert.AreEqual<int>(2, map.["b"])
+      Assert.AreEqual<int>(3, map.["c"])
+    | Error err -> Assert.Fail(err |> List.head |> (fun e -> e.message))
+
+  [<TestMethod>]
+  member _.``Required.Property.map collector overload collects multiple errors``
+    ()
+    =
+    let json = """{ "prop": { "a": 1, "b": "oops", "c": 3, "d": "bad" } }"""
+
+    let decoder =
+      Required.Property.map(
+        "prop",
+        fun _key element ->
+          Required.int element |> Result.mapError List.singleton
+      )
+
+    match Decoding.fromStringCol(json, decoder) with
+    | Ok _ -> Assert.Fail("Expected errors but got success")
+    | Error errors ->
+      Assert.AreEqual<int>(2, errors.Length)
+
+      Assert.IsTrue(
+        errors
+        |> List.exists(fun e ->
+          e.message.Contains "Expected 'Number' but got `String`"
+        )
+      )
+
+      Assert.IsTrue(errors |> List.exists(fun e -> e.property = Some "b"))
+      Assert.IsTrue(errors |> List.exists(fun e -> e.property = Some "d"))
+
+  [<TestMethod>]
+  member _.``Required.Property.map collector overload returns error if property is missing``
+    ()
+    =
+    let json = """{ "other": "value" }"""
+
+    let decoder =
+      Required.Property.map(
+        "prop",
+        fun _key element ->
+          Required.int element |> Result.mapError List.singleton
+      )
+
+    match Decoding.fromStringCol(json, decoder) with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error errors ->
+      Assert.AreEqual<int>(1, errors.Length)
+      Assert.IsTrue(errors.Head.message.Contains "Property 'prop' not found")
+
+  [<TestMethod>]
+  member _.``Required.Property.dict collector overload decodes a dictionary from an object property and collects errors``
+    ()
+    =
+    let json = """{ "prop": { "x": 10, "y": 20 } }"""
+
+    let decoder =
+      Required.Property.dict(
+        "prop",
+        fun _key element ->
+          Required.int element |> Result.mapError List.singleton
+      )
+
+    match Decoding.fromStringCol(json, decoder) with
+    | Ok dict ->
+      Assert.AreEqual<int>(2, dict.Count)
+      Assert.AreEqual<int>(10, dict.["x"])
+      Assert.AreEqual<int>(20, dict.["y"])
+    | Error err -> Assert.Fail(err |> List.head |> (fun e -> e.message))
+
+  [<TestMethod>]
+  member _.``Required.Property.dict collector overload collects multiple errors``
+    ()
+    =
+    let json = """{ "prop": { "x": 10, "y": "bad", "z": 30, "w": "oops" } }"""
+
+    let decoder =
+      Required.Property.dict(
+        "prop",
+        fun _key element ->
+          Required.int element |> Result.mapError List.singleton
+      )
+
+    match Decoding.fromStringCol(json, decoder) with
+    | Ok _ -> Assert.Fail("Expected errors but got success")
+    | Error errors ->
+      Assert.AreEqual<int>(2, errors.Length)
+
+      Assert.IsTrue(
+        errors
+        |> List.exists(fun e ->
+          e.message.Contains "Expected 'Number' but got `String`"
+        )
+      )
+
+      Assert.IsTrue(errors |> List.exists(fun e -> e.property = Some "y"))
+      Assert.IsTrue(errors |> List.exists(fun e -> e.property = Some "w"))
+
+  [<TestMethod>]
+  member _.``Required.Property.dict collector overload returns error if property is missing``
+    ()
+    =
+    let json = """{ "other": "value" }"""
+
+    let decoder =
+      Required.Property.dict(
+        "prop",
+        fun _key element ->
+          Required.int element |> Result.mapError List.singleton
+      )
+
+    match Decoding.fromStringCol(json, decoder) with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error errors ->
+      Assert.AreEqual<int>(1, errors.Length)
+      Assert.IsTrue(errors.Head.message.Contains "Property 'prop' not found")
