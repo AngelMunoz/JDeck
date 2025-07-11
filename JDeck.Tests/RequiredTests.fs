@@ -486,3 +486,132 @@ type RequiredTests() =
     | Error errors ->
       Assert.AreEqual<int>(1, errors.Length)
       Assert.IsTrue(errors.Head.message.Contains "Property 'prop' not found")
+
+  [<TestMethod>]
+  member _.``Required.Property.map collector handles nested Map of strings``() =
+    let json =
+      """{ "users": { "user1": { "name": "John", "role": "admin" }, "user2": { "name": "Jane", "role": "user" } } }"""
+
+    let decoder =
+      fun el ->
+        Required.Property.map ("users", Required.map Required.string) el
+        |> Result.mapError List.singleton
+
+    match Decoding.fromStringCol(json, decoder) with
+    | Ok usersMap ->
+      Assert.AreEqual<int>(2, usersMap.Count)
+      Assert.IsTrue(usersMap.ContainsKey("user1"))
+      Assert.IsTrue(usersMap.ContainsKey("user2"))
+      Assert.AreEqual<string>("John", usersMap.["user1"].["name"])
+      Assert.AreEqual<string>("admin", usersMap.["user1"].["role"])
+      Assert.AreEqual<string>("Jane", usersMap.["user2"].["name"])
+      Assert.AreEqual<string>("user", usersMap.["user2"].["role"])
+    | Error err -> Assert.Fail(err |> List.head |> (fun e -> e.message))
+
+  [<TestMethod>]
+  member _.``Required.Property.map handles simple integer maps``() =
+    let json = """{ "numbers": { "a": 1, "b": 2, "c": 3 } }"""
+    let decoder = Required.Property.map("numbers", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok map ->
+      Assert.AreEqual<int>(3, map.Count)
+      Assert.AreEqual<int>(1, map.["a"])
+      Assert.AreEqual<int>(2, map.["b"])
+      Assert.AreEqual<int>(3, map.["c"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.Property.map handles simple string maps``() =
+    let json =
+      """{ "config": { "host": "localhost", "port": "8080", "protocol": "http" } }"""
+
+    let decoder = Required.Property.map("config", Required.string)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok map ->
+      Assert.AreEqual<int>(3, map.Count)
+      Assert.AreEqual<string>("localhost", map.["host"])
+      Assert.AreEqual<string>("8080", map.["port"])
+      Assert.AreEqual<string>("http", map.["protocol"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.Property.map works with empty objects``() =
+    let json = """{ "empty": {} }"""
+    let decoder = Required.Property.map("empty", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok map -> Assert.AreEqual<int>(0, map.Count)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.Property.map fails when property contains mixed types``
+    ()
+    =
+    let json = """{ "mixed": { "valid": 1, "invalid": "not a number" } }"""
+    let decoder = Required.Property.map("mixed", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'Number' but got `String`"))
+
+  [<TestMethod>]
+  member _.``Required.Property.list handles lists of complex objects``() =
+    let json =
+      """{ "items": [ {"id": 1, "name": "item1"}, {"id": 2, "name": "item2"} ] }"""
+
+    let itemDecoder =
+      fun element -> decode {
+        let! id = element |> Required.Property.get("id", Required.int)
+        and! name = element |> Required.Property.get("name", Required.string)
+        return {| id = id; name = name |}
+      }
+
+    let decoder = Required.Property.list("items", itemDecoder)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok items ->
+      Assert.AreEqual<int>(2, items.Length)
+      Assert.AreEqual<int>(1, items.[0].id)
+      Assert.AreEqual<string>("item1", items.[0].name)
+      Assert.AreEqual<int>(2, items.[1].id)
+      Assert.AreEqual<string>("item2", items.[1].name)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.Property.array handles arrays of primitives``() =
+    let json = """{ "numbers": [1, 2, 3, 4, 5] }"""
+    let decoder = Required.Property.array("numbers", Required.int)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok numbers ->
+      Assert.AreEqual<int>(5, numbers.Length)
+
+      for i in 0..4 do
+        Assert.AreEqual<int>(i + 1, numbers.[i])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.Property.get fails gracefully with detailed error information``
+    ()
+    =
+    let json = """{ "other": "value" }"""
+    let decoder = Required.Property.get("missing", Required.string)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Property 'missing' not found"))
+      Assert.AreEqual<string option>(Some "missing", err.property)
+
+  [<TestMethod>]
+  member _.``Required.Property.get handles null values appropriately``() =
+    let json = """{ "value": null }"""
+    let decoder = Required.Property.get("value", Required.string)
+
+    match Decoding.fromString(json, decoder) with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'String' but got `Null`"))

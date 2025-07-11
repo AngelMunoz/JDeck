@@ -526,6 +526,16 @@ module Decode =
             |> Error
         )
 
+    let map<'TValue> (decoder: Decoder<'TValue>) =
+      shell
+        JsonValueKind.Object
+        (fun el -> Decode.map (fun _ el -> decoder el) el)
+
+    let dict<'TValue> (decoder: Decoder<'TValue>) =
+      shell
+        JsonValueKind.Object
+        (fun el -> Decode.dict (fun _ el -> decoder el) el)
+
     [<Class>]
     type Property =
       static member inline get(name: string, decoder) =
@@ -819,6 +829,16 @@ module Decode =
             |> Error
         )
 
+    let map (decoder: Decoder<_>) =
+      shell
+        JsonValueKind.Object
+        (fun el -> Decode.map (fun _ el -> decoder el) el)
+
+    let dict (decoder: Decoder<_>) =
+      shell
+        JsonValueKind.Object
+        (fun el -> Decode.dict (fun _ el -> decoder el) el)
+
     [<Class>]
     type Property =
       static member inline get(name: string, decoder: Decoder<_>) =
@@ -893,7 +913,10 @@ module Decode =
       static member inline map(name: string, decoder: Decoder<_>) =
         fun (element: JsonElement) ->
           match element.TryGetProperty name with
-          | true, el -> Decode.map (fun _ -> decoder) el |> Result.map Some
+          | true, el ->
+            match el.ValueKind with
+            | JsonValueKind.Null -> Ok None
+            | _ -> Decode.map (fun _ -> decoder) el |> Result.map Some
           | false, _ -> Ok None
 
       static member inline map
@@ -902,15 +925,21 @@ module Decode =
         fun (element: JsonElement) ->
           match element.TryGetProperty name with
           | true, el ->
-            Decode.mapCol decoder el
-            |> Result.mapError List.ofSeq
-            |> Result.map Some
+            match el.ValueKind with
+            | JsonValueKind.Null -> Ok None
+            | _ ->
+              Decode.mapCol decoder el
+              |> Result.mapError List.ofSeq
+              |> Result.map Some
           | false, _ -> Ok None
 
       static member inline dict(name: string, decoder: Decoder<_>) =
         fun (element: JsonElement) ->
           match element.TryGetProperty name with
-          | true, el -> Decode.dict (fun _ -> decoder) el |> Result.map Some
+          | true, el ->
+            match el.ValueKind with
+            | JsonValueKind.Null -> Ok None
+            | _ -> Decode.dict (fun _ -> decoder) el |> Result.map Some
           | false, _ -> Ok None
 
       static member inline dict
@@ -919,9 +948,12 @@ module Decode =
         fun (element: JsonElement) ->
           match element.TryGetProperty name with
           | true, el ->
-            Decode.dictCol decoder el
-            |> Result.mapError List.ofSeq
-            |> Result.map Some
+            match el.ValueKind with
+            | JsonValueKind.Null -> Ok None
+            | _ ->
+              Decode.dictCol decoder el
+              |> Result.mapError List.ofSeq
+              |> Result.map Some
           | false, _ -> Ok None
 
 [<AutoOpen>]

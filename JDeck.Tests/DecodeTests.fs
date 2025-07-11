@@ -1,7 +1,7 @@
 ﻿namespace JDeck.Tests
 
 open Microsoft.VisualStudio.TestTools.UnitTesting
-
+open System.Text.Json
 open JDeck
 
 type UnionSample =
@@ -166,3 +166,291 @@ type DecodingTests() =
     match Decoding.fromString("""{ "age": 42 }""", decoder) with
     | Ok _ -> Assert.Fail()
     | Error err -> Assert.IsTrue(err.message.Contains "Key missing not found")
+
+  [<TestMethod>]
+  member _.``Decode.map can decode a simple Map of strings``() =
+    let payload =
+      """{ "database": "postgres", "port": "5432", "ssl": "true" }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Decode.map (fun _ -> Required.string) root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<string>("postgres", result.["database"])
+      Assert.AreEqual<string>("5432", result.["port"])
+      Assert.AreEqual<string>("true", result.["ssl"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Decode.map can decode nested Maps of strings``() =
+    let payload =
+      """{ "config1": { "database": "postgres", "port": "5432", "ssl": "true" }, "config2": { "database": "mysql", "port": "3306", "ssl": "false" } }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+
+    let decoded =
+      Decode.map (fun _ -> Decode.map(fun _ -> Required.string)) root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(2, result.Count)
+      Assert.IsTrue(result.ContainsKey("config1"))
+      Assert.IsTrue(result.ContainsKey("config2"))
+
+      let config1 = result.["config1"]
+      Assert.AreEqual<int>(3, config1.Count)
+      Assert.AreEqual<string>("postgres", config1.["database"])
+      Assert.AreEqual<string>("5432", config1.["port"])
+      Assert.AreEqual<string>("true", config1.["ssl"])
+
+      let config2 = result.["config2"]
+      Assert.AreEqual<int>(3, config2.Count)
+      Assert.AreEqual<string>("mysql", config2.["database"])
+      Assert.AreEqual<string>("3306", config2.["port"])
+      Assert.AreEqual<string>("false", config2.["ssl"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.Property.get can decode nested Maps from a property``() =
+    let payload =
+      """{ "configurations": { "config1": { "database": "postgres", "port": "5432", "ssl": "true" }, "config2": { "database": "mysql", "port": "3306", "ssl": "false" } } }"""
+
+    let decoder =
+      Required.Property.get(
+        "configurations",
+        fun el -> Decode.map (fun _ -> Decode.map(fun _ -> Required.string)) el
+      )
+
+    match Decoding.fromString(payload, decoder) with
+    | Ok result ->
+      Assert.AreEqual<int>(2, result.Count)
+      Assert.IsTrue(result.ContainsKey("config1"))
+      Assert.IsTrue(result.ContainsKey("config2"))
+
+      let config1 = result.["config1"]
+      Assert.AreEqual<int>(3, config1.Count)
+      Assert.AreEqual<string>("postgres", config1.["database"])
+      Assert.AreEqual<string>("5432", config1.["port"])
+      Assert.AreEqual<string>("true", config1.["ssl"])
+
+      let config2 = result.["config2"]
+      Assert.AreEqual<int>(3, config2.Count)
+      Assert.AreEqual<string>("mysql", config2.["database"])
+      Assert.AreEqual<string>("3306", config2.["port"])
+      Assert.AreEqual<string>("false", config2.["ssl"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Decode.map can decode Maps with integer values``() =
+    let payload = """{ "timeout": 30, "retries": 5, "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Decode.map (fun _ -> Required.int) root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<int>(30, result.["timeout"])
+      Assert.AreEqual<int>(5, result.["retries"])
+      Assert.AreEqual<int>(1, result.["debug"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Decode.map fails when encountering wrong type``() =
+    let payload = """{ "timeout": 30, "retries": "invalid", "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Decode.map (fun _ -> Required.int) root
+
+    match decoded with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'Number' but got `String`"))
+
+  [<TestMethod>]
+  member _.``Decode.map can decode empty objects``() =
+    let payload = """{}"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Decode.map (fun _ -> Required.string) root
+
+    match decoded with
+    | Ok result -> Assert.AreEqual<int>(0, result.Count)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.Property.map can decode simple Maps of strings``() =
+    let payload =
+      """{ "config": { "database": "postgres", "port": "5432", "ssl": "true" } }"""
+
+    let decoder = Required.Property.map("config", Required.string)
+
+    match Decoding.fromString(payload, decoder) with
+    | Ok result ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<string>("postgres", result.["database"])
+      Assert.AreEqual<string>("5432", result.["port"])
+      Assert.AreEqual<string>("true", result.["ssl"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.map can decode a simple Map of strings``() =
+    let payload =
+      """{ "database": "postgres", "port": "5432", "ssl": "true" }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.map Required.string root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<string>("postgres", result.["database"])
+      Assert.AreEqual<string>("5432", result.["port"])
+      Assert.AreEqual<string>("true", result.["ssl"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.map can decode a Map of integers``() =
+    let payload = """{ "timeout": 30, "retries": 5, "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.map Required.int root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<int>(30, result.["timeout"])
+      Assert.AreEqual<int>(5, result.["retries"])
+      Assert.AreEqual<int>(1, result.["debug"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.map can decode nested Maps``() =
+    let payload =
+      """{ "config1": { "database": "postgres", "port": "5432" }, "config2": { "database": "mysql", "port": "3306" } }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.map (Required.map Required.string) root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(2, result.Count)
+      Assert.IsTrue(result.ContainsKey("config1"))
+      Assert.IsTrue(result.ContainsKey("config2"))
+
+      let config1 = result.["config1"]
+      Assert.AreEqual<string>("postgres", config1.["database"])
+      Assert.AreEqual<string>("5432", config1.["port"])
+
+      let config2 = result.["config2"]
+      Assert.AreEqual<string>("mysql", config2.["database"])
+      Assert.AreEqual<string>("3306", config2.["port"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.map fails when encountering wrong type``() =
+    let payload = """{ "timeout": 30, "retries": "invalid", "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.map Required.int root
+
+    match decoded with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'Number' but got `String`"))
+
+  [<TestMethod>]
+  member _.``Required.map can decode empty objects``() =
+    let payload = """{}"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.map Required.string root
+
+    match decoded with
+    | Ok result -> Assert.AreEqual<int>(0, result.Count)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.dict can decode a simple Dictionary of strings``() =
+    let payload =
+      """{ "database": "postgres", "port": "5432", "ssl": "true" }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.dict Required.string root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<string>("postgres", result.["database"])
+      Assert.AreEqual<string>("5432", result.["port"])
+      Assert.AreEqual<string>("true", result.["ssl"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.dict can decode a Dictionary of integers``() =
+    let payload = """{ "timeout": 30, "retries": 5, "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.dict Required.int root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<int>(30, result.["timeout"])
+      Assert.AreEqual<int>(5, result.["retries"])
+      Assert.AreEqual<int>(1, result.["debug"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.dict can decode nested Dictionaries``() =
+    let payload =
+      """{ "config1": { "database": "postgres", "port": "5432" }, "config2": { "database": "mysql", "port": "3306" } }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.dict (Required.dict Required.string) root
+
+    match decoded with
+    | Ok result ->
+      Assert.AreEqual<int>(2, result.Count)
+      Assert.IsTrue(result.ContainsKey("config1"))
+      Assert.IsTrue(result.ContainsKey("config2"))
+
+      let config1 = result.["config1"]
+      Assert.AreEqual<string>("postgres", config1.["database"])
+      Assert.AreEqual<string>("5432", config1.["port"])
+
+      let config2 = result.["config2"]
+      Assert.AreEqual<string>("mysql", config2.["database"])
+      Assert.AreEqual<string>("3306", config2.["port"])
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.dict fails when encountering wrong type``() =
+    let payload = """{ "timeout": 30, "retries": "invalid", "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.dict Required.int root
+
+    match decoded with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'Number' but got `String`"))
+
+  [<TestMethod>]
+  member _.``Required.dict can decode empty objects``() =
+    let payload = """{}"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Required.dict Required.string root
+
+    match decoded with
+    | Ok result -> Assert.AreEqual<int>(0, result.Count)
+    | Error err -> Assert.Fail(err.message)

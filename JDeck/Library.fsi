@@ -245,6 +245,8 @@ module Decode =
     val float: Decoder<float>
     val dateTime: Decoder<DateTime>
     val dateTimeOffset: Decoder<DateTimeOffset>
+    val map<'TValue> : Decoder<'TValue> -> Decoder<Map<string, 'TValue>>
+    val dict<'TValue> : Decoder<'TValue> -> Decoder<System.Collections.Generic.Dictionary<string, 'TValue>>
 
     /// <summary>
     /// This type containes methods that are particularly useful to decode properties from JSON elements.
@@ -416,6 +418,8 @@ module Decode =
     val float: Decoder<float option>
     val dateTime: Decoder<DateTime option>
     val dateTimeOffset: Decoder<DateTimeOffset option>
+    val map<'TValue> : Decoder<'TValue> -> Decoder<Map<string, 'TValue> option>
+    val dict<'TValue> : Decoder<'TValue> -> Decoder<System.Collections.Generic.Dictionary<string, 'TValue> option>
 
     /// <summary>
     /// This type containes methods that are particularly useful to decode properties from JSON elements.

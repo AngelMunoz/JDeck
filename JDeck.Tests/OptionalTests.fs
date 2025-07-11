@@ -2,6 +2,7 @@ namespace JDeck.Tests
 
 open System
 open Microsoft.VisualStudio.TestTools.UnitTesting
+open System.Text.Json
 
 open JDeck
 open FsToolkit.ErrorHandling
@@ -330,16 +331,6 @@ type OptionalTests() =
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
-  member _.``Optional.Property.map returns error if property is null``() =
-    let json = """{ "m": null }"""
-    let decoder = Optional.Property.map("m", Required.int)
-
-    match Decoding.fromString(json, decoder) with
-    | Ok _ -> Assert.Fail()
-    | Error err ->
-      Assert.IsTrue(err.message.Contains("Expected 'Object' but got `Null`"))
-
-  [<TestMethod>]
   member _.``Optional.Property.dict decodes a dictionary from an object property if present``
     ()
     =
@@ -363,16 +354,6 @@ type OptionalTests() =
     | Ok None -> ()
     | Ok(Some _) -> Assert.Fail()
     | Error err -> Assert.Fail(err.message)
-
-  [<TestMethod>]
-  member _.``Optional.Property.dict returns error if property is null``() =
-    let json = """{ "d": null }"""
-    let decoder = Optional.Property.dict("d", Required.int)
-
-    match Decoding.fromString(json, decoder) with
-    | Ok _ -> Assert.Fail()
-    | Error err ->
-      Assert.IsTrue(err.message.Contains("Expected 'Object' but got `Null`"))
 
   [<TestMethod>]
   member _.``Optional.Property.map collector overload decodes a map from an object property if present and collects errors``
@@ -508,3 +489,209 @@ type OptionalTests() =
     | Ok None -> Assert.IsTrue(true)
     | Ok(Some _) -> Assert.Fail("Expected None but got Some")
     | Error err -> Assert.Fail(err |> List.head |> (fun e -> e.message))
+
+  [<TestMethod>]
+  member _.``Optional.map can decode a simple Map of strings``() =
+    let payload =
+      """{ "database": "postgres", "port": "5432", "ssl": "true" }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.map Required.string root
+
+    match decoded with
+    | Ok(Some result) ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<string>("postgres", result.["database"])
+      Assert.AreEqual<string>("5432", result.["port"])
+      Assert.AreEqual<string>("true", result.["ssl"])
+    | Ok None -> Assert.Fail("Expected Some but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.map returns None for null``() =
+    let payload = """null"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.map Required.string root
+
+    match decoded with
+    | Ok None -> Assert.IsTrue(true)
+    | Ok(Some _) -> Assert.Fail("Expected None but got Some")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.map can decode a Map of integers``() =
+    let payload = """{ "timeout": 30, "retries": 5, "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.map Required.int root
+
+    match decoded with
+    | Ok(Some result) ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<int>(30, result.["timeout"])
+      Assert.AreEqual<int>(5, result.["retries"])
+      Assert.AreEqual<int>(1, result.["debug"])
+    | Ok None -> Assert.Fail("Expected Some but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.map can decode nested Maps``() =
+    let payload =
+      """{ "config1": { "database": "postgres", "port": "5432" }, "config2": { "database": "mysql", "port": "3306" } }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.map (Optional.map Required.string) root
+
+    match decoded with
+    | Ok(Some result) ->
+      Assert.AreEqual<int>(2, result.Count)
+      Assert.IsTrue(result.ContainsKey("config1"))
+      Assert.IsTrue(result.ContainsKey("config2"))
+
+      let config1 = result.["config1"]
+
+      match config1 with
+      | Some cfg1 ->
+        Assert.AreEqual<string>("postgres", cfg1.["database"])
+        Assert.AreEqual<string>("5432", cfg1.["port"])
+      | None -> Assert.Fail("Expected Some config1 but got None")
+
+      let config2 = result.["config2"]
+
+      match config2 with
+      | Some cfg2 ->
+        Assert.AreEqual<string>("mysql", cfg2.["database"])
+        Assert.AreEqual<string>("3306", cfg2.["port"])
+      | None -> Assert.Fail("Expected Some config2 but got None")
+    | Ok None -> Assert.Fail("Expected Some but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.map fails when encountering wrong type``() =
+    let payload = """{ "timeout": 30, "retries": "invalid", "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.map Required.int root
+
+    match decoded with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'Number' but got `String`"))
+
+  [<TestMethod>]
+  member _.``Optional.map can decode empty objects``() =
+    let payload = """{}"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.map Required.string root
+
+    match decoded with
+    | Ok(Some result) -> Assert.AreEqual<int>(0, result.Count)
+    | Ok None -> Assert.Fail("Expected Some but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.dict can decode a simple Dictionary of strings``() =
+    let payload =
+      """{ "database": "postgres", "port": "5432", "ssl": "true" }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.dict Required.string root
+
+    match decoded with
+    | Ok(Some result) ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<string>("postgres", result.["database"])
+      Assert.AreEqual<string>("5432", result.["port"])
+      Assert.AreEqual<string>("true", result.["ssl"])
+    | Ok None -> Assert.Fail("Expected Some but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.dict returns None for null``() =
+    let payload = """null"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.dict Required.string root
+
+    match decoded with
+    | Ok None -> Assert.IsTrue(true)
+    | Ok(Some _) -> Assert.Fail("Expected None but got Some")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.dict can decode a Dictionary of integers``() =
+    let payload = """{ "timeout": 30, "retries": 5, "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.dict Required.int root
+
+    match decoded with
+    | Ok(Some result) ->
+      Assert.AreEqual<int>(3, result.Count)
+      Assert.AreEqual<int>(30, result.["timeout"])
+      Assert.AreEqual<int>(5, result.["retries"])
+      Assert.AreEqual<int>(1, result.["debug"])
+    | Ok None -> Assert.Fail("Expected Some but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.dict can decode nested Dictionaries``() =
+    let payload =
+      """{ "config1": { "database": "postgres", "port": "5432" }, "config2": { "database": "mysql", "port": "3306" } }"""
+
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.dict (Optional.dict Required.string) root
+
+    match decoded with
+    | Ok(Some result) ->
+      Assert.AreEqual<int>(2, result.Count)
+      Assert.IsTrue(result.ContainsKey("config1"))
+      Assert.IsTrue(result.ContainsKey("config2"))
+
+      let config1 = result.["config1"]
+
+      match config1 with
+      | Some cfg1 ->
+        Assert.AreEqual<string>("postgres", cfg1.["database"])
+        Assert.AreEqual<string>("5432", cfg1.["port"])
+      | None -> Assert.Fail("Expected Some config1 but got None")
+
+      let config2 = result.["config2"]
+
+      match config2 with
+      | Some cfg2 ->
+        Assert.AreEqual<string>("mysql", cfg2.["database"])
+        Assert.AreEqual<string>("3306", cfg2.["port"])
+      | None -> Assert.Fail("Expected Some config2 but got None")
+    | Ok None -> Assert.Fail("Expected Some but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.dict fails when encountering wrong type``() =
+    let payload = """{ "timeout": 30, "retries": "invalid", "debug": 1 }"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.dict Required.int root
+
+    match decoded with
+    | Ok _ -> Assert.Fail("Expected error but got success")
+    | Error err ->
+      Assert.IsTrue(err.message.Contains("Expected 'Number' but got `String`"))
+
+  [<TestMethod>]
+  member _.``Optional.dict can decode empty objects``() =
+    let payload = """{}"""
+    use doc = JsonDocument.Parse(payload)
+    let root = doc.RootElement
+    let decoded = Optional.dict Required.string root
+
+    match decoded with
+    | Ok(Some result) -> Assert.AreEqual<int>(0, result.Count)
+    | Ok None -> Assert.Fail("Expected Some but got None")
+    | Error err -> Assert.Fail(err.message)
