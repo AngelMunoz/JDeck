@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.Text.Json.Nodes
 
 type Encoder<'T> = 'T -> JsonNode
+type MapEntryEncoder<'Key, 'Value> = 'Key * 'Value -> string  * JsonNode
 
 [<AutoOpen>]
 module Encoding =
@@ -47,6 +48,17 @@ module Encoding =
       =
       values |> Seq.iter(fun value -> jsonArray.Add(encoder value))
       jsonArray :> JsonNode
+
+    let inline map<'Key, 'Value>
+      (values: IDictionary<'Key, 'Value>, encoder: MapEntryEncoder<'Key, 'Value>)
+      =
+      let obj = JsonObject()
+      for KeyValue(key, value) in values do
+        let key, value = encoder (key, value)
+        obj.Add(key, value)
+
+      obj
+
 
   type Json =
     static member inline empty() = JsonObject.Parse("{}").AsObject()

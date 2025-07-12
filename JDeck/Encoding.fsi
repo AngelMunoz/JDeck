@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.Text.Json.Nodes
 
 type Encoder<'T> = 'T -> JsonNode
+type MapEntryEncoder<'Key, 'Value> = 'Key * 'Value -> string  * JsonNode
 
 [<AutoOpen>]
 module Encoding =
@@ -23,6 +24,7 @@ module Encoding =
     val inline dateTimeOffset: value: DateTimeOffset -> JsonNode
     val inline property: name: string * value: JsonNode -> jsonObject: JsonObject -> JsonObject
     val inline sequence: values: 'T seq * encoder: Encoder<'T> -> jsonArray: JsonArray -> JsonNode
+    val inline map<'Key, 'Value>: values: IDictionary<'Key, 'Value> * encoder: MapEntryEncoder<'Key, 'Value> -> JsonObject
 
   /// <summary>Provides functions for creating JSON nodes.</summary>
   [<Class>]

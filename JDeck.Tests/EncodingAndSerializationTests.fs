@@ -2,10 +2,20 @@ namespace JDeck.Tests
 
 open System
 open System.Text.Json
+open System.Text.Json.Nodes
 open Microsoft.VisualStudio.TestTools.UnitTesting
 
 open JDeck
 
+type Department = { Name: string; Location: string }
+
+type Organization = {
+  OrgName: string
+  Departments: Map<string, Department>
+  YearFounded: int
+}
+
+type Person = { Name: string; Age: int }
 
 [<TestClass>]
 type EncodingTests() =
@@ -119,6 +129,149 @@ type EncodingTests() =
 
     Assert.AreEqual<string>(expected, encoded)
 
+  [<TestMethod>]
+  member _.``Encode.map can encode IDictionary<'K,'V> with the right encoder``() =
+    let map = System.Collections.Generic.Dictionary<string, int>()
+    map.Add("one", 1)
+    map.Add("two", 2)
+    map.Add("three", 3)
+
+    let encoder = fun (key, value) -> key, Encode.int value
+
+    let encoded = Encode.map(map, encoder) |> _.ToJsonString()
+
+    let expected = "{\"one\":1,\"two\":2,\"three\":3}"
+
+    Assert.AreEqual<string>(expected, encoded)
+
+  [<TestMethod>]
+  member _.``Encode.map can encode an F# map with the right encoder``() =
+    let map = Map.ofList [ ("one", 1); ("two", 2); ("three", 3) ]
+
+    let encoder = fun (key, value) -> key, Encode.int value
+
+    let encoded = Encode.map(map, encoder) |> _.ToJsonString()
+
+    let expected = "{\"one\":1,\"three\":3,\"two\":2}"
+
+    Assert.AreEqual<string>(expected, encoded)
+
+  [<TestMethod>]
+  member _.``Encode.map can encode maps with complex objects``() =
+
+    let people = System.Collections.Generic.Dictionary<string, Person>()
+    people.Add("person1", { Name = "John"; Age = 30 })
+    people.Add("person2", { Name = "Jane"; Age = 25 })
+
+    let personEncoder =
+      fun (key, person) ->
+        key,
+        Json.empty()
+        |> Encode.property("name", Encode.string person.Name)
+        |> Encode.property("age", Encode.int person.Age)
+        :> JsonNode
+
+    let encoded = Encode.map(people, personEncoder) |> _.ToJsonString()
+
+    let expected =
+      "{\"person1\":{\"name\":\"John\",\"age\":30},\"person2\":{\"name\":\"Jane\",\"age\":25}}"
+
+    Assert.AreEqual<string>(expected, encoded)
+
+  [<TestMethod>]
+  member _.``Pipeline style can encode maps within complex objects``() =
+    // Create test data
+    let departments =
+      Map.ofList [
+        ("engineering",
+         {
+           Name = "Engineering"
+           Location = "Building A"
+         })
+        ("marketing",
+         {
+           Name = "Marketing"
+           Location = "Building B"
+         })
+      ]
+
+    let organization = {
+      OrgName = "Acme Corp"
+      Departments = departments
+      YearFounded = 1985
+    }
+
+    // Create department encoder using pipeline style
+    let departmentEncoder =
+      fun (key, dept: Department) ->
+        key,
+        Json.empty()
+        |> Encode.property("name", Encode.string dept.Name)
+        |> Encode.property("location", Encode.string dept.Location)
+        :> JsonNode
+
+    // Encode the entire organization using pipeline style
+    let encoded =
+      Json.empty()
+      |> Encode.property("name", Encode.string organization.OrgName)
+      |> Encode.property("yearFounded", Encode.int organization.YearFounded)
+      |> Encode.property(
+        "departments",
+        Encode.map(organization.Departments, departmentEncoder)
+      )
+      |> _.ToJsonString()
+
+    let expected =
+      "{\"name\":\"Acme Corp\",\"yearFounded\":1985,\"departments\":{\"engineering\":{\"name\":\"Engineering\",\"location\":\"Building A\"},\"marketing\":{\"name\":\"Marketing\",\"location\":\"Building B\"}}}"
+
+    Assert.AreEqual<string>(expected, encoded)
+
+  [<TestMethod>]
+  member _.``Object list style can encode maps within complex objects``() =
+    // Create test data
+    let departments =
+      Map.ofList [
+        ("engineering",
+         {
+           Name = "Engineering"
+           Location = "Building A"
+         })
+        ("marketing",
+         {
+           Name = "Marketing"
+           Location = "Building B"
+         })
+      ]
+
+    let organization = {
+      OrgName = "Acme Corp"
+      Departments = departments
+      YearFounded = 1985
+    }
+    // Encode the entire organization using the object list style
+    let encoded =
+      Json.object [
+        "name", Encode.string organization.OrgName
+        "yearFounded", Encode.int organization.YearFounded
+        "departments",
+        Encode.map(
+          organization.Departments,
+          fun (key, dept: Department) ->
+            key,
+            Json.object [
+              "name", Encode.string dept.Name
+              "location", Encode.string dept.Location
+            ]
+            :> JsonNode
+        )
+      ]
+      |> _.ToJsonString()
+
+    let expected =
+      "{\"name\":\"Acme Corp\",\"yearFounded\":1985,\"departments\":{\"engineering\":{\"name\":\"Engineering\",\"location\":\"Building A\"},\"marketing\":{\"name\":\"Marketing\",\"location\":\"Building B\"}}}"
+
+    Assert.AreEqual<string>(expected, encoded)
+
 type T1 =
   | A of int
   | B of string
@@ -149,7 +302,7 @@ type SerializationTests() =
   [<TestMethod>]
   member _.``encoding fails when encoder is not registered``() =
 
-    Assert.ThrowsException<System.NotSupportedException>(fun _ ->
+    Assert.ThrowsException<NotSupportedException>(fun _ ->
       JsonSerializer.Serialize(T1.A 42) |> ignore
     )
     |> ignore
@@ -180,7 +333,7 @@ type SerializationTests() =
   [<TestMethod>]
   member _.``decoding fails when decoder is not registered``() =
 
-    Assert.ThrowsException<System.NotSupportedException>(fun _ ->
+    Assert.ThrowsException<NotSupportedException>(fun _ ->
       JsonSerializer.Deserialize<T1>("42") |> ignore
     )
     |> ignore
