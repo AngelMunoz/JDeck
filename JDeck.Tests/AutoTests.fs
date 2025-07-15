@@ -857,3 +857,40 @@ type AutoTests() =
       Assert.AreEqual<int>(1, importMap.integrity.Count)
       Assert.AreEqual<string>("sha384-abc123", importMap.integrity.["lit"])
     | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``ImportMap decoder handles all null properties correctly``() =
+    let payload = """{ "imports": null, "scopes": null, "integrity": null }"""
+
+    let customDecoder: Decoder<ImportMap> =
+      fun el -> decode {
+        let! imports = el |> Optional.Property.map("imports", Required.string)
+
+        let! scopes =
+          el |> Optional.Property.map("scopes", Required.map Required.string)
+
+        let! integrity =
+          el |> Optional.Property.map("integrity", Required.string)
+
+        return {
+          imports = defaultArg imports Map.empty
+          scopes = defaultArg scopes Map.empty
+          integrity = defaultArg integrity Map.empty
+        }
+      }
+
+    use doc = JsonDocument.Parse(payload)
+    let result = customDecoder doc.RootElement
+
+    match result with
+    | Ok importMap ->
+      // Verify all fields are empty maps (not null)
+      Assert.AreEqual<int>(0, importMap.imports.Count)
+      Assert.AreEqual<int>(0, importMap.scopes.Count)
+      Assert.AreEqual<int>(0, importMap.integrity.Count)
+      
+      // Verify that when casting maps to obj, they are not null
+      Assert.IsNotNull(importMap.imports :> obj)
+      Assert.IsNotNull(importMap.scopes :> obj)
+      Assert.IsNotNull(importMap.integrity :> obj)
+    | Error err -> Assert.Fail(err.message)
