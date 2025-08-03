@@ -32,18 +32,18 @@ type private JDeckConverter<'T>(?encoder: Encoder<'T>, ?decoder: Decoder<'T>) =
 
 module Codec =
   let useEncoder (encoder: Encoder<'T>) (options: JsonSerializerOptions) =
-    options.Converters.Add(JDeckConverter<'T>(encoder = encoder))
+    options.Converters.Insert(0, JDeckConverter<'T>(encoder = encoder))
     options
 
   let useDecoder (decoder: Decoder<'T>) (options: JsonSerializerOptions) =
-    options.Converters.Add(JDeckConverter<'T>(decoder = decoder))
+    options.Converters.Insert(0, JDeckConverter<'T>(decoder = decoder))
     options
 
   let useCodec
     (encoder: Encoder<'T>, decoder: Decoder<'T>)
     (options: JsonSerializerOptions)
     =
-    options.Converters.Add(
+    options.Converters.Insert(0, 
       JDeckConverter<'T>(encoder = encoder, decoder = decoder)
     )
 
