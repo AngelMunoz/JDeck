@@ -162,6 +162,22 @@ printfn $"%A{person'}"
 (**
 There's also `Codec.useEncoder` and `Codec.useDecoder` for when you only need to encode or decode a type, respectively.
 
+If your encoder/decoder needs access to the active JsonSerializerOptions (for composing with other converters or calling Decode.autoJsonOptions options), register factories instead:
+
+(***hide***)
+let nestedDecoder (opts: JsonSerializerOptions) : Decoder<ContactForm> =
+  fun el -> ContactForm.Decoder el // You could call Decode.autoJsonOptions opts here
+
+let nestedEncoder (_opts: JsonSerializerOptions) : Encoder<ContactForm> =
+  ContactForm.Encoder
+(***show***)
+
+let options =
+  JsonSerializerOptions()
+  |> Codec.useCodecWithOptions(nestedEncoder, nestedDecoder)
+
+// Now JsonSerializer will use codecs that can leverage the same options instance during (de)serialization.
+
 ## Full Codec Way
 
 If for whatever reason you'd prefer to go more manual than automatic, you can use the helper functions in the Decoding type.
