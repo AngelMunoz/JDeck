@@ -526,6 +526,104 @@ module Decode =
             |> Error
         )
 
+    let timeSpan =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParse(element.GetString()) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a TimeSpan from the current value"
+            )
+            |> Error
+        )
+
+    let dateTimeExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTime.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTime from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeOffsetExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTimeOffset.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTimeOffset from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let timeSpanExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a TimeSpan from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.DateTimeStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTime.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTime from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeOffsetExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.DateTimeStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTimeOffset.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTimeOffset from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let timeSpanExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.TimeSpanStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a TimeSpan from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
     let map<'TValue> (decoder: Decoder<'TValue>) =
       shell
         JsonValueKind.Object
@@ -829,6 +927,104 @@ module Decode =
             |> Error
         )
 
+    let timeSpan =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParse(element.GetString()) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a TimeSpan from the current value"
+            )
+            |> Error
+        )
+
+    let dateTimeExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTime.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTime from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeOffsetExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTimeOffset.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTimeOffset from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let timeSpanExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a TimeSpan from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.DateTimeStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTime.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTime from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeOffsetExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.DateTimeStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTimeOffset.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTimeOffset from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let timeSpanExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.TimeSpanStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a TimeSpan from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
     let map (decoder: Decoder<_>) =
       shell
         JsonValueKind.Object
@@ -955,6 +1151,394 @@ module Decode =
               |> Result.mapError List.ofSeq
               |> Result.map Some
           | false, _ -> Ok None
+
+  module VOptional =
+
+    let inline internal shell
+      (valueKind: JsonValueKind)
+      ([<InlineIfLambda>] decoder)
+      (element: JsonElement)
+      =
+      try
+        match element.ValueKind with
+        | kind when kind = valueKind -> decoder element |> Result.map ValueSome
+        | JsonValueKind.Null
+        | JsonValueKind.Undefined -> Ok ValueNone
+        | kind ->
+          DecodeError.ofError(
+            element.Clone(),
+            $"Expected '{valueKind}' but got `{kind}`"
+          )
+          |> Error
+      with ex ->
+        DecodeError.ofError(element.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
+
+
+    let string =
+      shell JsonValueKind.String (fun element -> Ok(element.GetString()))
+
+    let boolean (element: JsonElement) =
+      try
+        match element.ValueKind with
+        | JsonValueKind.True
+        | JsonValueKind.False -> Ok(ValueSome(element.GetBoolean()))
+        | JsonValueKind.Undefined
+        | JsonValueKind.Null -> Ok ValueNone
+        | kind ->
+          DecodeError.ofError(
+            element.Clone(),
+            $"Expected a boolean but got `{kind}`"
+          )
+          |> Error
+      with ex ->
+        DecodeError.ofError(element.Clone(), "")
+        |> DecodeError.withException ex
+        |> Error
+
+    let char =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          let value = element.GetString()
+
+          if value.Length > 1 then
+            DecodeError.ofError(
+              element.Clone(),
+              $"Expecting a char but got a string of size: %i{value.Length}"
+            )
+            |> Error
+          else
+            Ok value[0]
+        )
+
+    let guid =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match element.TryGetGuid() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let unit = shell JsonValueKind.Null (fun _ -> Ok())
+
+    let byte =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetByte() with
+          | true, byte -> Ok byte
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let int =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetInt32() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let int64 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetInt64() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let float =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetDouble() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let dateTime =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match element.TryGetDateTime() with
+          | true, value -> Ok value
+          | _ ->
+
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let dateTimeOffset =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match element.TryGetDateTimeOffset() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let timeSpan =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParse(element.GetString()) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a TimeSpan from the current value"
+            )
+            |> Error
+        )
+
+    let dateTimeExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTime.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTime from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeOffsetExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTimeOffset.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTimeOffset from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let timeSpanExact (format: string) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParseExact(element.GetString(), format, System.Globalization.CultureInfo.InvariantCulture) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a TimeSpan from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.DateTimeStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTime.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTime from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let dateTimeOffsetExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.DateTimeStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match DateTimeOffset.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a DateTimeOffset from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let timeSpanExactWith (format: string) (provider: IFormatProvider) (style: System.Globalization.TimeSpanStyles) =
+      shell
+        JsonValueKind.String
+        (fun element ->
+          match TimeSpan.TryParseExact(element.GetString(), format, provider, style) with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              $"Unable to get a TimeSpan from the current value using format '{format}'"
+            )
+            |> Error
+        )
+
+    let map (decoder: Decoder<_>) =
+      shell
+        JsonValueKind.Object
+        (fun el -> Decode.map (fun _ el -> decoder el) el)
+
+    let dict (decoder: Decoder<_>) =
+      shell
+        JsonValueKind.Object
+        (fun el -> Decode.dict (fun _ el -> decoder el) el)
+
+    [<Class>]
+    type Property =
+      static member inline get(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> decoder el |> Result.map ValueSome
+          | false, _ -> Ok ValueNone
+
+      static member inline get(name: string, decoder: CollectErrorsDecoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> decoder el |> Result.map ValueSome
+          | false, _ -> Ok ValueNone
+
+      static member inline seq(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el -> Decode.sequence (fun _ -> decoder) el |> Result.map ValueSome
+          | false, _ -> Ok ValueNone
+
+      static member inline seq(name: string, decoder: CollectErrorsDecoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el ->
+            Decode.sequenceCol (fun _ -> decoder) el |> Result.map ValueSome
+          | false, _ -> Ok ValueNone
+
+      static member inline list(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          element
+          |> Property.seq(name, decoder)
+          |> Result.map(
+            function
+            | ValueSome v -> v |> List.ofSeq |> ValueSome
+            | ValueNone -> ValueNone
+          )
+
+      static member inline list
+        (name: string, decoder: CollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          element
+          |> Property.seq(name, decoder)
+          |> Result.map(
+            function
+            | ValueSome v -> v |> List.ofSeq |> ValueSome
+            | ValueNone -> ValueNone
+          )
+
+      static member inline array(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          element
+          |> Property.seq(name, decoder)
+          |> Result.map(
+            function
+            | ValueSome v -> v |> Array.ofSeq |> ValueSome
+            | ValueNone -> ValueNone
+          )
+
+      static member inline array
+        (name: string, decoder: CollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          element
+          |> Property.seq(name, decoder)
+          |> Result.map(
+            function
+            | ValueSome v -> v |> Array.ofSeq |> ValueSome
+            | ValueNone -> ValueNone
+          )
+
+      static member inline map(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el ->
+            match el.ValueKind with
+            | JsonValueKind.Null -> Ok ValueNone
+            | _ -> Decode.map (fun _ -> decoder) el |> Result.map ValueSome
+          | false, _ -> Ok ValueNone
+
+      static member inline map
+        (name: string, decoder: IndexedMapCollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el ->
+            match el.ValueKind with
+            | JsonValueKind.Null -> Ok ValueNone
+            | _ ->
+              Decode.mapCol decoder el
+              |> Result.mapError List.ofSeq
+              |> Result.map ValueSome
+          | false, _ -> Ok ValueNone
+
+      static member inline dict(name: string, decoder: Decoder<_>) =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el ->
+            match el.ValueKind with
+            | JsonValueKind.Null -> Ok ValueNone
+            | _ -> Decode.dict (fun _ -> decoder) el |> Result.map ValueSome
+          | false, _ -> Ok ValueNone
+
+      static member inline dict
+        (name: string, decoder: IndexedMapCollectErrorsDecoder<_>)
+        =
+        fun (element: JsonElement) ->
+          match element.TryGetProperty name with
+          | true, el ->
+            match el.ValueKind with
+            | JsonValueKind.Null -> Ok ValueNone
+            | _ ->
+              Decode.dictCol decoder el
+              |> Result.mapError List.ofSeq
+              |> Result.map ValueSome
+          | false, _ -> Ok ValueNone
+
 
 [<AutoOpen>]
 module Builders =

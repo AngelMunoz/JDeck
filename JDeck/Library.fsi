@@ -245,6 +245,13 @@ module Decode =
     val float: Decoder<float>
     val dateTime: Decoder<DateTime>
     val dateTimeOffset: Decoder<DateTimeOffset>
+    val timeSpan: Decoder<TimeSpan>
+    val dateTimeExact: format: string -> Decoder<DateTime>
+    val dateTimeOffsetExact: format: string -> Decoder<DateTimeOffset>
+    val timeSpanExact: format: string -> Decoder<TimeSpan>
+    val dateTimeExactWith: format: string -> provider: IFormatProvider -> style: Globalization.DateTimeStyles -> Decoder<DateTime>
+    val dateTimeOffsetExactWith: format: string -> provider: IFormatProvider -> style: Globalization.DateTimeStyles -> Decoder<DateTimeOffset>
+    val timeSpanExactWith: format: string -> provider: IFormatProvider -> style: Globalization.TimeSpanStyles -> Decoder<TimeSpan>
     val map<'TValue> : Decoder<'TValue> -> Decoder<Map<string, 'TValue>>
     val dict<'TValue> : Decoder<'TValue> -> Decoder<System.Collections.Generic.Dictionary<string, 'TValue>>
 
@@ -418,6 +425,13 @@ module Decode =
     val float: Decoder<float option>
     val dateTime: Decoder<DateTime option>
     val dateTimeOffset: Decoder<DateTimeOffset option>
+    val timeSpan: Decoder<TimeSpan option>
+    val dateTimeExact: format: string -> Decoder<DateTime option>
+    val dateTimeOffsetExact: format: string -> Decoder<DateTimeOffset option>
+    val timeSpanExact: format: string -> Decoder<TimeSpan option>
+    val dateTimeExactWith: format: string -> provider: IFormatProvider -> style: Globalization.DateTimeStyles -> Decoder<DateTime option>
+    val dateTimeOffsetExactWith: format: string -> provider: IFormatProvider -> style: Globalization.DateTimeStyles -> Decoder<DateTimeOffset option>
+    val timeSpanExactWith: format: string -> provider: IFormatProvider -> style: Globalization.TimeSpanStyles -> Decoder<TimeSpan option>
     val map<'TValue> : Decoder<'TValue> -> Decoder<Map<string, 'TValue> option>
     val dict<'TValue> : Decoder<'TValue> -> Decoder<System.Collections.Generic.Dictionary<string, 'TValue> option>
 
@@ -606,6 +620,220 @@ module Decode =
       static member inline dict:
         name: string * decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
           (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue> option, DecodeError list>)
+
+  /// <summary>
+  /// Contains a set of decoders that are not required to decode to the particular type and will not fail.
+  /// These decoders will return a voption type. even if the value is null or is absent from the JSON element.
+  /// </summary>
+  module VOptional =
+
+    val string: Decoder<string voption>
+    val boolean: Decoder<bool voption>
+    val char: Decoder<char voption>
+    val guid: Decoder<Guid voption>
+    val unit: Decoder<unit voption>
+    val byte: Decoder<byte voption>
+    val int: Decoder<int voption>
+    val int64: Decoder<int64 voption>
+    val float: Decoder<float voption>
+    val dateTime: Decoder<DateTime voption>
+    val dateTimeOffset: Decoder<DateTimeOffset voption>
+    val timeSpan: Decoder<TimeSpan voption>
+    val dateTimeExact: format: string -> Decoder<DateTime voption>
+    val dateTimeOffsetExact: format: string -> Decoder<DateTimeOffset voption>
+    val timeSpanExact: format: string -> Decoder<TimeSpan voption>
+    val dateTimeExactWith: format: string -> provider: IFormatProvider -> style: Globalization.DateTimeStyles -> Decoder<DateTime voption>
+    val dateTimeOffsetExactWith: format: string -> provider: IFormatProvider -> style: Globalization.DateTimeStyles -> Decoder<DateTimeOffset voption>
+    val timeSpanExactWith: format: string -> provider: IFormatProvider -> style: Globalization.TimeSpanStyles -> Decoder<TimeSpan voption>
+    val map<'TValue> : Decoder<'TValue> -> Decoder<Map<string, 'TValue> voption>
+    val dict<'TValue> : Decoder<'TValue> -> Decoder<System.Collections.Generic.Dictionary<string, 'TValue> voption>
+
+    /// <summary>
+    /// This type containes methods that are particularly useful to decode properties from JSON elements.
+    /// They can be primitive properties, objects, arrays, etc.
+    /// </summary>
+    /// <remarks>
+    /// If the property is not found or is null in the JSON element, the decoding will return an option type.
+    /// </remarks>
+    [<Class>]
+    type Property =
+      /// <summary>
+      /// Takes the name of a property and a decoder and returns a function that can be used to decode the property.
+      /// </summary>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline get:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult voption, DecodeError>)
+
+      /// <summary>
+      /// Takes the name of a property and a decoder and returns a function that can be used to decode the property.
+      /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline get:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult voption, DecodeError list>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to each element in the property as if it was a JSON array
+      /// </summary>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline seq:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult seq voption, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to each element in the property as if it was a JSON array
+      /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline seq:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult seq voption, DecodeError list>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to each element in the property as if it was a JSON array
+      /// </summary>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline list:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult list voption, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to each element in the property as if it was a JSON array
+      /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline list:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult list voption, DecodeError list>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to each element in the property as if it was a JSON array
+      /// </summary>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline array:
+        name: string * decoder: Decoder<'TResult> -> (JsonElement -> Result<'TResult array voption, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to each element in the property as if it was a JSON array
+      /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline array:
+        name: string * decoder: CollectErrorsDecoder<'TResult> ->
+          (JsonElement -> Result<'TResult array voption, DecodeError list>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <remarks>
+      /// The decoding process will stop at the first failure, and the error will be returned.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline map:
+        name: string * decoder: Decoder<'TValue> -> (JsonElement -> Result<Map<string, 'TValue> voption, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline map:
+        name: string * decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
+          (JsonElement -> Result<Map<string, 'TValue> voption, DecodeError list>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      /// <remarks>The decoding process will stop at the first failure, and the error will be returned.</remarks>
+      static member inline dict:
+        name: string * decoder: Decoder<'TValue> ->
+          (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue> voption, DecodeError>)
+
+      /// <summary>
+      /// Takes a property name and applies the given decoder to the values on the properties of the object
+      /// </summary>
+      /// <remarks>
+      /// This method will attempt to decode the type and collect all the errors that occur during the decoding process.
+      /// If there's an error in the decoding process, the decoding will continue until there are no more,
+      /// the returned error will contain a list of all the errors that occurred.
+      /// </remarks>
+      /// <remarks>
+      /// The decoding process will fail only if the property is found, it matches the underlying type and the decoding fails.
+      /// If the property is not found or is null, the decoding will return an option type.
+      /// </remarks>
+      /// <param name="name"></param>
+      /// <param name="decoder"></param>
+      static member inline dict:
+        name: string * decoder: IndexedMapCollectErrorsDecoder<'TValue> ->
+          (JsonElement -> Result<System.Collections.Generic.Dictionary<string, 'TValue> voption, DecodeError list>)
+
 
 /// <summary>
 /// Provides an in-the-box computation expression that can be used to decode JSON elements.
