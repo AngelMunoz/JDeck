@@ -24,7 +24,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.x.x
+          dotnet-version: 10.x.x
       # Restore the local tools
       - name: Build Docs
         run: dotnet fsi build.fsx -- -p ci:docs
