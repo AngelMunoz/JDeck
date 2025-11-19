@@ -35,6 +35,27 @@ module Encoding =
     let inline dateTimeOffset (value: DateTimeOffset) =
       JsonValue.Create(value.ToString("o")) :> JsonNode
 
+    let inline timeSpan (value: TimeSpan) =
+      JsonValue.Create(value.ToString()) :> JsonNode
+
+    let inline dateTimeExact (format: string) (value: DateTime) =
+      JsonValue.Create(value.ToString(format, System.Globalization.CultureInfo.InvariantCulture)) :> JsonNode
+
+    let inline dateTimeOffsetExact (format: string) (value: DateTimeOffset) =
+      JsonValue.Create(value.ToString(format, System.Globalization.CultureInfo.InvariantCulture)) :> JsonNode
+
+    let inline timeSpanExact (format: string) (value: TimeSpan) =
+      JsonValue.Create(value.ToString(format, System.Globalization.CultureInfo.InvariantCulture)) :> JsonNode
+
+    let inline dateTimeExactWith (format: string) (provider: IFormatProvider) (value: DateTime) =
+      JsonValue.Create(value.ToString(format, provider)) :> JsonNode
+
+    let inline dateTimeOffsetExactWith (format: string) (provider: IFormatProvider) (value: DateTimeOffset) =
+      JsonValue.Create(value.ToString(format, provider)) :> JsonNode
+
+    let inline timeSpanExactWith (format: string) (provider: IFormatProvider) (value: TimeSpan) =
+      JsonValue.Create(value.ToString(format, provider)) :> JsonNode
+
     let inline property
       (name: string, value: JsonNode)
       (jsonObject: JsonObject)

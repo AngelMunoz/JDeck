@@ -95,6 +95,14 @@ type EncodingTests() =
     Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
+  member _.``Encode can encode a TimeSpan``() =
+    let timeSpan = TimeSpan(1, 2, 3)
+    let encoded = Encode.timeSpan timeSpan
+    let expected = "\"01:02:03\""
+
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+
+  [<TestMethod>]
   member _.``Encode an object``() =
     let encoded =
       Json.object [ ("name", Encode.string "John"); ("age", Encode.int 30) ]

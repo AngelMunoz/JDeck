@@ -1,6 +1,7 @@
 ﻿namespace JDeck.Tests
 
 open Microsoft.VisualStudio.TestTools.UnitTesting
+open System
 open System.Text.Json
 open JDeck
 
@@ -453,4 +454,72 @@ type DecodingTests() =
 
     match decoded with
     | Ok result -> Assert.AreEqual<int>(0, result.Count)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.timeSpan can decode a TimeSpan``() =
+    let payload = """{ "duration": "01:02:03" }"""
+    let decoder = Required.Property.get("duration", Required.timeSpan)
+    match Decoding.fromString(payload, decoder) with
+    | Ok value -> Assert.AreEqual<TimeSpan>(TimeSpan(1, 2, 3), value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Optional.timeSpan can decode a TimeSpan``() =
+    let payload = """{ "duration": "01:02:03" }"""
+    let decoder = Optional.Property.get("duration", Optional.timeSpan)
+    match Decoding.fromString(payload, decoder) with
+    | Ok(Some(Some value)) -> Assert.AreEqual<TimeSpan>(TimeSpan(1, 2, 3), value)
+    | Ok _ -> Assert.Fail("Expected Some(Some value)")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``VOptional.string can decode a string``() =
+    let payload = """{ "name": "John" }"""
+    let decoder = Required.Property.get("name", VOptional.string)
+    match Decoding.fromString(payload, decoder) with
+    | Ok(ValueSome value) -> Assert.AreEqual<string>("John", value)
+    | Ok ValueNone -> Assert.Fail("Expected ValueSome but got ValueNone")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``VOptional.timeSpan can decode a TimeSpan``() =
+    let payload = """{ "duration": "01:02:03" }"""
+    let decoder = Required.Property.get("duration", VOptional.timeSpan)
+    match Decoding.fromString(payload, decoder) with
+    | Ok(ValueSome value) -> Assert.AreEqual<TimeSpan>(TimeSpan(1, 2, 3), value)
+    | Ok ValueNone -> Assert.Fail("Expected ValueSome but got ValueNone")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.dateTimeExact can decode a DateTime with custom format``() =
+    let payload = """{ "date": "2023/01/02" }"""
+    let decoder = Required.Property.get("date", Required.dateTimeExact "yyyy/MM/dd")
+    match Decoding.fromString(payload, decoder) with
+    | Ok value -> Assert.AreEqual<DateTime>(DateTime(2023, 1, 2), value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.dateTimeOffsetExact can decode a DateTimeOffset with custom format``() =
+    let payload = """{ "date": "2023/01/02 +00:00" }"""
+    let decoder = Required.Property.get("date", Required.dateTimeOffsetExact "yyyy/MM/dd zzz")
+    match Decoding.fromString(payload, decoder) with
+    | Ok value -> Assert.AreEqual<DateTimeOffset>(DateTimeOffset(2023, 1, 2, 0, 0, 0, TimeSpan.Zero), value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.timeSpanExact can decode a TimeSpan with custom format``() =
+    let payload = """{ "duration": "01:02:03" }"""
+    let decoder = Required.Property.get("duration", Required.timeSpanExact "hh\:mm\:ss")
+    match Decoding.fromString(payload, decoder) with
+    | Ok value -> Assert.AreEqual<TimeSpan>(TimeSpan(1, 2, 3), value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``Required.dateTimeExactWith can decode a DateTime with custom culture``() =
+    let payload = """{ "date": "19 novembre 2023" }"""
+    let culture = System.Globalization.CultureInfo.GetCultureInfo("fr-FR")
+    let decoder = Required.Property.get("date", Required.dateTimeExactWith "dd MMMM yyyy" culture System.Globalization.DateTimeStyles.None)
+    match Decoding.fromString(payload, decoder) with
+    | Ok value -> Assert.AreEqual<DateTime>(DateTime(2023, 11, 19), value)
     | Error err -> Assert.Fail(err.message)

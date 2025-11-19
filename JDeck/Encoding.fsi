@@ -22,6 +22,13 @@ module Encoding =
     val inline float: value: float -> JsonNode
     val inline dateTime: value: DateTime -> JsonNode
     val inline dateTimeOffset: value: DateTimeOffset -> JsonNode
+    val inline timeSpan: value: TimeSpan -> JsonNode
+    val inline dateTimeExact: format: string -> value: DateTime -> JsonNode
+    val inline dateTimeOffsetExact: format: string -> value: DateTimeOffset -> JsonNode
+    val inline timeSpanExact: format: string -> value: TimeSpan -> JsonNode
+    val inline dateTimeExactWith: format: string -> provider: IFormatProvider -> value: DateTime -> JsonNode
+    val inline dateTimeOffsetExactWith: format: string -> provider: IFormatProvider -> value: DateTimeOffset -> JsonNode
+    val inline timeSpanExactWith: format: string -> provider: IFormatProvider -> value: TimeSpan -> JsonNode
     val inline property: name: string * value: JsonNode -> jsonObject: JsonObject -> JsonObject
     val inline sequence: values: 'T seq * encoder: Encoder<'T> -> jsonArray: JsonArray -> JsonNode
     val inline map<'Key, 'Value>: values: IDictionary<'Key, 'Value> * encoder: MapEntryEncoder<'Key, 'Value> -> JsonObject
