@@ -11,7 +11,7 @@ While We could provide an interface somewhat like:
 
 (***hide***)
 
-#r "nuget: JDeck, 1.0.0-beta-*"
+#r "nuget: JDeck, 1.0.0"
 
 open System
 open System.Text.Json
@@ -68,7 +68,7 @@ type ContactForm =
   | Phone of string
 
 
-(** Our Discriminated union has different shapes, two of them match the other doesn't so we have to come up with a format that can handle all of them *)
+  (** Our Discriminated union has different shapes, two of them match the other doesn't so we have to come up with a format that can handle all of them *)
 
   static member Encoder: Encoder<ContactForm> =
     fun (contactForm: ContactForm) ->
@@ -85,11 +85,11 @@ type ContactForm =
           "type", Encode.string "phone"
           "value", Encode.string phone
       ]
-(***hide***)
+  (***hide***)
 
-(** Our decoder will also have to accomodate to that, since we control both the serialization and deserialization we can be sure that the format will be consistent *)
+  (** Our decoder will also have to accomodate to that, since we control both the serialization and deserialization we can be sure that the format will be consistent *)
 
-(***show***)
+  (***show***)
   static member Decoder: Decoder<ContactForm> =
     fun json -> decode {
       let! type' = json |> Required.Property.get("type", Required.string)
@@ -163,6 +163,7 @@ printfn $"%A{person'}"
 There's also `Codec.useEncoder` and `Codec.useDecoder` for when you only need to encode or decode a type, respectively.
 
 If your encoder/decoder needs access to the active JsonSerializerOptions (for composing with other converters or calling Decode.autoJsonOptions options), register factories instead:
+*)
 
 (***hide***)
 let nestedDecoder (opts: JsonSerializerOptions) : Decoder<ContactForm> =
@@ -178,6 +179,7 @@ let options =
 
 // Now JsonSerializer will use codecs that can leverage the same options instance during (de)serialization.
 
+(**
 ## Full Codec Way
 
 If for whatever reason you'd prefer to go more manual than automatic, you can use the helper functions in the Decoding type.
@@ -202,4 +204,3 @@ Decoding.fromBytes(byteArray,
 And also `Decoding.fromStream`.
 Except from `Decoding.auto` all of these methods require a decoder to be passed in, which most likely means that you already know the shape of the json object you're trying to decode and also supplied the required codecs for each property and its type.
 *)
-

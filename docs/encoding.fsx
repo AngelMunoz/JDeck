@@ -11,7 +11,7 @@ An Encoder is defined as:
 *)
 
 (***hide***)
-#r "nuget: JDeck, 1.0.0-beta-*"
+#r "nuget: JDeck, 1.0.0"
 
 open System
 open JDeck
@@ -80,16 +80,17 @@ type ContactMethod =
   | Email of string
   | Phone of string
 
-  static member Encoder: Encoder<ContactMethod> = fun contactMethod ->
-    Json.object [
-      match contactMethod with
-      | Email email ->
-        "type", Encode.string "email"
-        "value", Encode.string email
-      | Phone phone ->
-        "type", Encode.string "phone"
-        "value", Encode.string phone
-    ]
+  static member Encoder: Encoder<ContactMethod> =
+    fun contactMethod ->
+      Json.object [
+        match contactMethod with
+        | Email email ->
+          "type", Encode.string "email"
+          "value", Encode.string email
+        | Phone phone ->
+          "type", Encode.string "phone"
+          "value", Encode.string phone
+      ]
 
 (**
 As we've discussed in other sections of this website, discriminated unions are a particular type that needs special handling when working with System.Text.Json APIs as it is not supported.
@@ -112,7 +113,8 @@ type Person = {
         // here we use our previously defined encoders
         "address", Address.Encoder person.address
         // for each contact method we encode it using the ContactMethod encoder
-        "contactMethod", Json.sequence(person.contactMethod, ContactMethod.Encoder)
+        "contactMethod",
+        Json.sequence(person.contactMethod, ContactMethod.Encoder)
       ]
 (**
 The defined encoder for the Person type uses the previously defined encoders for the Address and ContactMethod types.
@@ -123,7 +125,11 @@ For other discriminated unions and custom types you can customize entirely the s
 let person = {
   name = "John Doe"
   age = 42
-  address = { street = "21 2nd Street"; city = "New York"; zip = Some "10021" }
+  address = {
+    street = "21 2nd Street"
+    city = "New York"
+    zip = Some "10021"
+  }
   contactMethod = [ Email "abc@dfg.com"; Phone "1234567890" ]
 }
 
@@ -146,4 +152,3 @@ The JSON object above has been formatted for display purposes, but the actual JS
 
 The encoding story is not set in stone yet for JDeck, and there's still room for improvement, feedback is appreciated in this regard.
 *)
-

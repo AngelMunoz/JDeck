@@ -4,7 +4,7 @@ When you use <abbr title="System.Text.Json">STJ</abbr> to deserialize JSON, you 
 *)
 
 (***hide***)
-#r "nuget: JDeck, 1.0.0-beta-*"
+#r "nuget: JDeck, 1.0.0"
 
 open System.Text.Json
 open System.Text.Json.Serialization
@@ -61,12 +61,15 @@ let myobj3 =
 In this way, you're able to customize the deserialization process for a specific type.
 
 If your custom decoder relies on other custom decoders (for nested types) and needs access to the active JsonSerializerOptions (for example to call Decode.autoJsonOptions options), register it with a factory so it receives the same options instance:
+*)
 
 (***hide***)
-let contactDecoder (opts: JsonSerializerOptions) : Decoder<{| value: string |}> =
+let contactDecoder
+  (opts: JsonSerializerOptions)
+  : Decoder<{| value: string |}> =
   fun json -> decode {
     // can use opts here, e.g. Decode.autoJsonOptions opts
-    let! value = Required.Property.get("value", Required.string) json
+    let! value = Required.Property.get ("value", Required.string) json
     return {| value = value |}
   }
 (***show***)
@@ -74,6 +77,7 @@ let contactDecoder (opts: JsonSerializerOptions) : Decoder<{| value: string |}> 
 let opts = JsonSerializerOptions() |> Codec.useDecoderWithOptions contactDecoder
 let obj = Decoding.auto<{| value: string |}>("""{"value":"ok"}""", opts)
 
+(**
 Speaking of decoders, a decoder is defined as:
 
 *)

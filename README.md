@@ -11,7 +11,7 @@ dependencies. Plays well with other libraries that use `System.Text.Json` like [
 For most F# types, you can use the `Decode.auto` function to decode JSON as shown below:
 
 ```fsharp
-#r "nuget: JDeck, 1.0.0-beta-*"
+#r "nuget: JDeck, 1.0.0"
 
 open JDeck
 
@@ -32,7 +32,7 @@ match result with
 In cases where the data is inconclusive, you deserialize Discriminated Unions or does not play well with F# immutability, you can create a manual decoder.
 
 ```fsharp
-#r "nuget: JDeck, 1.0.0-beta-*"
+#r "nuget: JDeck, 1.0.0"
 
 open System.Text.Json
 open JDeck
@@ -70,7 +70,6 @@ match result with
 | Ok person -> printfn $"Person: %A{person}"
 | Error err -> printfn $"Error: %A{err}"
 ```
-
 
 ## Acknowledgements
 

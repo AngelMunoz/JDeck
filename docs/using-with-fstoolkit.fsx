@@ -13,7 +13,7 @@ If you're already using FsToolkit in your codebase we recommend using the `resul
 (***hide***)
 
 #r "nuget:FsToolkit.ErrorHandling"
-#r "nuget: JDeck, 1.0.0-beta-*"
+#r "nuget: JDeck, 1.0.0"
 
 open System
 open System.IO
