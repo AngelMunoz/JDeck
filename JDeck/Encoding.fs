@@ -84,6 +84,10 @@ module Encoding =
       values |> Seq.iter(fun value -> jsonArray.Add(encoder value))
       jsonArray :> JsonNode
 
+    let inline mixedSeq (values: JsonNode seq) (jsonArray: JsonArray) =
+      values |> Seq.iter jsonArray.Add
+      jsonArray :> JsonNode
+
     let inline map<'Key, 'Value>
       (values: IDictionary<'Key, 'Value>, encoder: MapEntryEncoder<'Key, 'Value>)
       =
@@ -110,3 +114,6 @@ module Encoding =
 
     static member inline sequence(values: 'T seq, encoder: Encoder<'T>) =
       (Encode.sequence (values, encoder) (JsonArray()))
+
+    static member inline sequence(values: JsonNode seq) =
+      (Encode.mixedSeq values (JsonArray()))
