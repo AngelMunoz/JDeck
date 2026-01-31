@@ -933,7 +933,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a string from the current value"
             )
             |> Error
         )
@@ -949,7 +949,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a boolean from the current value"
             )
             |> Error
         )
@@ -963,7 +963,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a char from the current value"
             )
             |> Error
         )
@@ -991,7 +991,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode unit from the current value"
             )
             |> Error
         )
@@ -1005,7 +1005,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a byte from the current value"
             )
             |> Error
         )
@@ -1019,7 +1019,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode an int from the current value"
             )
             |> Error
         )
@@ -1033,7 +1033,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode an int64 from the current value"
             )
             |> Error
         )
@@ -1047,7 +1047,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a float from the current value"
             )
             |> Error
         )
@@ -1061,7 +1061,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a single from the current value"
             )
             |> Error
         )
@@ -1075,7 +1075,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode an int16 from the current value"
             )
             |> Error
         )
@@ -1089,7 +1089,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a uint16 from the current value"
             )
             |> Error
         )
@@ -1104,7 +1104,7 @@ module Decode =
 
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a uint32 from the current value"
             )
             |> Error
         )
@@ -1118,7 +1118,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a uint64 from the current value"
             )
             |> Error
         )
@@ -1418,7 +1418,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a string from the current value"
             )
             |> Error
         )
@@ -1434,7 +1434,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a boolean from the current value"
             )
             |> Error
         )
@@ -1448,7 +1448,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a char from the current value"
             )
             |> Error
         )
@@ -1476,7 +1476,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode unit from the current value"
             )
             |> Error
         )
@@ -1490,7 +1490,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a byte from the current value"
             )
             |> Error
         )
@@ -1504,7 +1504,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode an int from the current value"
             )
             |> Error
         )
@@ -1518,7 +1518,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode an int64 from the current value"
             )
             |> Error
         )
@@ -1532,7 +1532,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a float from the current value"
             )
             |> Error
         )
@@ -1546,7 +1546,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a single from the current value"
             )
             |> Error
         )
@@ -1560,7 +1560,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode an int16 from the current value"
             )
             |> Error
         )
@@ -1574,7 +1574,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a uint16 from the current value"
             )
             |> Error
         )
@@ -1589,7 +1589,7 @@ module Decode =
 
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a uint32 from the current value"
             )
             |> Error
         )
@@ -1603,7 +1603,7 @@ module Decode =
           | _ ->
             DecodeError.ofError(
               element.Clone(),
-              "Unable to decode a guid from the current value"
+              "Unable to decode a uint64 from the current value"
             )
             |> Error
         )
