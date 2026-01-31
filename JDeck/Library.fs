@@ -498,6 +498,104 @@ module Decode =
             |> Error
         )
 
+    let single =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetSingle() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a single from the current value"
+            )
+            |> Error
+        )
+
+    let int16 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetInt16() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get an int16 from the current value"
+            )
+            |> Error
+        )
+
+    let uint16 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt16() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a uint16 from the current value"
+            )
+            |> Error
+        )
+
+    let uint32 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt32() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a uint32 from the current value"
+            )
+            |> Error
+        )
+
+    let uint64 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt64() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a uint64 from the current value"
+            )
+            |> Error
+        )
+
+    let sbyte =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetSByte() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a sbyte from the current value"
+            )
+            |> Error
+        )
+
+    let decimal =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetDecimal() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to get a decimal from the current value"
+            )
+            |> Error
+        )
+
     let dateTime =
       shell
         JsonValueKind.String
@@ -898,6 +996,104 @@ module Decode =
             |> Error
         )
 
+    let single =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetSingle() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let int16 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetInt16() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let uint16 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt16() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let uint32 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt32() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let uint64 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt64() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let sbyte =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetSByte() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let decimal =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetDecimal() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
     let dateTime =
       shell
         JsonValueKind.String
@@ -1276,6 +1472,104 @@ module Decode =
         JsonValueKind.Number
         (fun element ->
           match element.TryGetDouble() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let single =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetSingle() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let int16 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetInt16() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let uint16 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt16() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let uint32 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt32() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let uint64 =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetUInt64() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let sbyte =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetSByte() with
+          | true, value -> Ok value
+          | _ ->
+            DecodeError.ofError(
+              element.Clone(),
+              "Unable to decode a guid from the current value"
+            )
+            |> Error
+        )
+
+    let decimal =
+      shell
+        JsonValueKind.Number
+        (fun element ->
+          match element.TryGetDecimal() with
           | true, value -> Ok value
           | _ ->
             DecodeError.ofError(

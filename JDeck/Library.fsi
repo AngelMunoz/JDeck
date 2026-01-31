@@ -243,6 +243,13 @@ module Decode =
     val int: Decoder<int>
     val int64: Decoder<int64>
     val float: Decoder<float>
+    val single: Decoder<single>
+    val int16: Decoder<int16>
+    val uint16: Decoder<uint16>
+    val uint32: Decoder<uint32>
+    val uint64: Decoder<uint64>
+    val sbyte: Decoder<sbyte>
+    val decimal: Decoder<decimal>
     val dateTime: Decoder<DateTime>
     val dateTimeOffset: Decoder<DateTimeOffset>
     val timeSpan: Decoder<TimeSpan>
@@ -423,6 +430,13 @@ module Decode =
     val int: Decoder<int option>
     val int64: Decoder<int64 option>
     val float: Decoder<float option>
+    val single: Decoder<single option>
+    val int16: Decoder<int16 option>
+    val uint16: Decoder<uint16 option>
+    val uint32: Decoder<uint32 option>
+    val uint64: Decoder<uint64 option>
+    val sbyte: Decoder<sbyte option>
+    val decimal: Decoder<decimal option>
     val dateTime: Decoder<DateTime option>
     val dateTimeOffset: Decoder<DateTimeOffset option>
     val timeSpan: Decoder<TimeSpan option>
@@ -636,6 +650,13 @@ module Decode =
     val int: Decoder<int voption>
     val int64: Decoder<int64 voption>
     val float: Decoder<float voption>
+    val single: Decoder<single voption>
+    val int16: Decoder<int16 voption>
+    val uint16: Decoder<uint16 voption>
+    val uint32: Decoder<uint32 voption>
+    val uint64: Decoder<uint64 voption>
+    val sbyte: Decoder<sbyte voption>
+    val decimal: Decoder<decimal voption>
     val dateTime: Decoder<DateTime voption>
     val dateTimeOffset: Decoder<DateTimeOffset voption>
     val timeSpan: Decoder<TimeSpan voption>

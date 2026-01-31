@@ -1,4 +1,4 @@
-﻿namespace JDeck
+namespace JDeck
 
 open System
 open System.Collections.Generic
@@ -20,6 +20,13 @@ module Encoding =
     val inline int: value: int -> JsonNode
     val inline int64: value: int64 -> JsonNode
     val inline float: value: float -> JsonNode
+    val inline single: value: single -> JsonNode
+    val inline int16: value: int16 -> JsonNode
+    val inline uint16: value: uint16 -> JsonNode
+    val inline uint32: value: uint32 -> JsonNode
+    val inline uint64: value: uint64 -> JsonNode
+    val inline sbyte: value: sbyte -> JsonNode
+    val inline decimal: value: decimal -> JsonNode
     val inline dateTime: value: DateTime -> JsonNode
     val inline dateTimeOffset: value: DateTimeOffset -> JsonNode
     val inline timeSpan: value: TimeSpan -> JsonNode

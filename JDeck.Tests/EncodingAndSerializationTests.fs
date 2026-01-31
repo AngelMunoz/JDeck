@@ -79,6 +79,55 @@ type EncodingTests() =
     Assert.AreEqual<string>(expected, encoded.ToJsonString())
 
   [<TestMethod>]
+  member _.``Encode can encode a single``() =
+    let encoded = Encode.single 3.14f
+    let expected = "3.14"
+
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+
+  [<TestMethod>]
+  member _.``Encode can encode an int16``() =
+    let encoded = Encode.int16 1000s
+    let expected = "1000"
+
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+
+  [<TestMethod>]
+  member _.``Encode can encode a uint16``() =
+    let encoded = Encode.uint16 5000us
+    let expected = "5000"
+
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+
+  [<TestMethod>]
+  member _.``Encode can encode a uint32``() =
+    let encoded = Encode.uint32 4000000u
+    let expected = "4000000"
+
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+
+  [<TestMethod>]
+  member _.``Encode can encode a uint64``() =
+    let encoded = Encode.uint64 9000000000UL
+    let expected = "9000000000"
+
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+
+  [<TestMethod>]
+  member _.``Encode can encode a sbyte``() =
+    let encoded = Encode.sbyte 50y
+    let expected = "50"
+
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+
+  [<TestMethod>]
+  member _.``Encode can encode a decimal``() =
+    let encoded = Encode.decimal 1234.56m
+    let expected = "1234.56"
+
+    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+
+  [<TestMethod>]
   member _.``Encode can encode a DateTime``() =
     let dateTime = DateTime.Now
     let encoded = Encode.dateTime dateTime

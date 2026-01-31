@@ -85,6 +85,48 @@ type RequiredTests() =
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
+  member _.``JDeck can decode singles``() =
+    match Decoding.fromString("3.14", Required.single) with
+    | Ok value -> Assert.AreEqual<single>(3.14f, value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode int16s``() =
+    match Decoding.fromString("1000", Required.int16) with
+    | Ok value -> Assert.AreEqual<int16>(1000s, value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode uint16s``() =
+    match Decoding.fromString("5000", Required.uint16) with
+    | Ok value -> Assert.AreEqual<uint16>(5000us, value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode uint32s``() =
+    match Decoding.fromString("4000000", Required.uint32) with
+    | Ok value -> Assert.AreEqual<uint32>(4000000u, value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode uint64s``() =
+    match Decoding.fromString("9000000000", Required.uint64) with
+    | Ok value -> Assert.AreEqual<uint64>(9000000000UL, value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode sbytes``() =
+    match Decoding.fromString("50", Required.sbyte) with
+    | Ok value -> Assert.AreEqual<sbyte>(50y, value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode decimals``() =
+    match Decoding.fromString("1234.56", Required.decimal) with
+    | Ok value -> Assert.AreEqual<decimal>(1234.56m, value)
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
   member _.``JDeck can decode date time``() =
     match
       Decoding.fromString("\"2024-11-17T05:35:11.147Z\"", Required.dateTime)

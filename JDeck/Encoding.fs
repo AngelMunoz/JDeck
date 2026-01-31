@@ -29,6 +29,20 @@ module Encoding =
 
     let inline float (value: float) = JsonValue.Create(value) :> JsonNode
 
+    let inline single (value: single) = JsonValue.Create(value) :> JsonNode
+
+    let inline int16 (value: int16) = JsonValue.Create(value) :> JsonNode
+
+    let inline uint16 (value: uint16) = JsonValue.Create(value) :> JsonNode
+
+    let inline uint32 (value: uint32) = JsonValue.Create(value) :> JsonNode
+
+    let inline uint64 (value: uint64) = JsonValue.Create(value) :> JsonNode
+
+    let inline sbyte (value: sbyte) = JsonValue.Create(value) :> JsonNode
+
+    let inline decimal (value: decimal) = JsonValue.Create(value) :> JsonNode
+
     let inline dateTime (value: DateTime) =
       JsonValue.Create(value.ToString("o")) :> JsonNode
 

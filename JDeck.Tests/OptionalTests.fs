@@ -158,6 +158,62 @@ type OptionalTests() =
     | Error err -> Assert.Fail(err.message)
 
   [<TestMethod>]
+  member _.``JDeck does not fail on null singles``() =
+    match Decoding.fromString("null", Optional.single) with
+    | Ok None -> ()
+    | Ok(Some _) -> Assert.Fail("Expected None but got a value")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode singles``() =
+    match Decoding.fromString("3.14", Optional.single) with
+    | Ok(Some value) -> Assert.AreEqual<single>(3.14f, value)
+    | Ok None -> Assert.Fail("Expected a value but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode int16s``() =
+    match Decoding.fromString("1000", Optional.int16) with
+    | Ok(Some value) -> Assert.AreEqual<int16>(1000s, value)
+    | Ok None -> Assert.Fail("Expected a value but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode uint16s``() =
+    match Decoding.fromString("5000", Optional.uint16) with
+    | Ok(Some value) -> Assert.AreEqual<uint16>(5000us, value)
+    | Ok None -> Assert.Fail("Expected a value but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode uint32s``() =
+    match Decoding.fromString("4000000", Optional.uint32) with
+    | Ok(Some value) -> Assert.AreEqual<uint32>(4000000u, value)
+    | Ok None -> Assert.Fail("Expected a value but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode uint64s``() =
+    match Decoding.fromString("9000000000", Optional.uint64) with
+    | Ok(Some value) -> Assert.AreEqual<uint64>(9000000000UL, value)
+    | Ok None -> Assert.Fail("Expected a value but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode sbytes``() =
+    match Decoding.fromString("50", Optional.sbyte) with
+    | Ok(Some value) -> Assert.AreEqual<sbyte>(50y, value)
+    | Ok None -> Assert.Fail("Expected a value but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
+  member _.``JDeck can decode decimals``() =
+    match Decoding.fromString("1234.56", Optional.decimal) with
+    | Ok(Some value) -> Assert.AreEqual<decimal>(1234.56m, value)
+    | Ok None -> Assert.Fail("Expected a value but got None")
+    | Error err -> Assert.Fail(err.message)
+
+  [<TestMethod>]
   member _.``JDeck can decode DateTimes``() =
     let expected = DateTime.Now
 
