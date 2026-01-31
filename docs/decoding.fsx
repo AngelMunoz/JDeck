@@ -1,10 +1,10 @@
-﻿(** # Decoding Guide
+(** # Decoding Guide
 
 When you use <abbr title="System.Text.Json">STJ</abbr> to deserialize JSON, you would likely expect to Just call
 *)
 
 (***hide***)
-#r "nuget: JDeck, 1.0.0"
+#r "../JDeck/bin/Release/netstandard2.0/JDeck.dll"
 
 open System.Text.Json
 open System.Text.Json.Serialization
@@ -86,6 +86,37 @@ type Decoder<'TResult> = JsonElement -> Result<'TResult, DecodeError>
 
 Where `JsonElement` is the type representing a JSON object in <abbr title="System.Text.Json">STJ</abbr>.
 where `'TResult` is the type you want to decode the JSON into. For example a `Decoder<int>` would map a JSON string to an integer.
+
+## Available Decoders
+
+JDeck provides decoders for a wide range of primitive types in both Required and Optional variants:
+
+### Text and Boolean Types
+- `Required.string` / `Optional.string` - Decodes JSON strings
+- `Required.boolean` / `Optional.boolean` - Decodes JSON booleans
+- `Required.char` / `Optional.char` - Decodes single-character strings
+- `Required.guid` / `Optional.guid` - Decodes GUID strings
+
+### Numeric Types
+- `Required.int` / `Optional.int` - Decodes 32-bit integers
+- `Required.int64` / `Optional.int64` - Decodes 64-bit integers
+- `Required.single` / `Optional.single` - Decodes 32-bit floats (float32)
+- `Required.float` / `Optional.float` - Decodes 64-bit floats (double)
+- `Required.int16` / `Optional.int16` - Decodes 16-bit signed integers
+- `Required.uint16` / `Optional.uint16` - Decodes 16-bit unsigned integers
+- `Required.uint32` / `Optional.uint32` - Decodes 32-bit unsigned integers
+- `Required.uint64` / `Optional.uint64` - Decodes 64-bit unsigned integers
+- `Required.byte` / `Optional.byte` - Decodes 8-bit unsigned integers
+- `Required.sbyte` / `Optional.sbyte` - Decodes 8-bit signed integers
+- `Required.decimal` / `Optional.decimal` - Decodes decimal numbers
+
+### Date and Time Types
+- `Required.dateTime` / `Optional.dateTime` - Decodes ISO 8601 date/time strings
+- `Required.dateTimeOffset` / `Optional.dateTimeOffset` - Decodes ISO 8601 date/time offset strings
+- `Required.timeSpan` / `Optional.timeSpan` - Decodes time span strings
+- `Required.dateTimeExact` / `Optional.dateTimeExact` - Decodes dates with custom format
+- `Required.dateTimeOffsetExact` / `Optional.dateTimeOffsetExact` - Decodes date/time offsets with custom format
+- `Required.timeSpanExact` / `Optional.timeSpanExact` - Decodes time spans with custom format
 
 ## Required Vs Optional
 

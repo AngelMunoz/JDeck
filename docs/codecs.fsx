@@ -11,7 +11,7 @@ While We could provide an interface somewhat like:
 
 (***hide***)
 
-#r "nuget: JDeck, 1.0.0"
+#r "../JDeck/bin/Release/netstandard2.0/JDeck.dll"
 
 open System
 open System.Text.Json

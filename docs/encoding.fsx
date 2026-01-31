@@ -1,4 +1,4 @@
-﻿(**
+(**
 # Encoding Guide
 
 While encoding is not really a big concern for <abbr title="System.Text.JSON">STJ</abbr> there's still types that are not supported out of the box.
@@ -11,7 +11,7 @@ An Encoder is defined as:
 *)
 
 (***hide***)
-#r "nuget: JDeck, 1.0.0"
+#r "../JDeck/bin/Release/netstandard2.0/JDeck.dll"
 
 open System
 open JDeck
@@ -26,6 +26,34 @@ There's two styles offered currently by this library:
 
 - Property list style
 - Pipeline style
+
+## Available Encoders
+
+JDeck provides encoders for a wide range of primitive types:
+
+- **Strings**: `Encode.string`
+- **Booleans**: `Encode.boolean`
+- **Characters**: `Encode.char`
+- **Guids**: `Encode.guid`
+- **Numeric Types**:
+  - `Encode.int` (int32)
+  - `Encode.int64` (int64)
+  - `Encode.single` (float32)
+  - `Encode.float` (float/double)
+  - `Encode.int16` (int16)
+  - `Encode.uint16` (uint16)
+  - `Encode.uint32` (uint32)
+  - `Encode.uint64` (uint64)
+  - `Encode.byte` (byte)
+  - `Encode.sbyte` (sbyte)
+  - `Encode.decimal` (decimal)
+- **Date/Time Types**:
+  - `Encode.dateTime` - ISO 8601 format
+  - `Encode.dateTimeOffset` - ISO 8601 format
+  - `Encode.timeSpan` - String representation
+  - `Encode.dateTimeExact` - Custom format
+  - `Encode.dateTimeOffsetExact` - Custom format
+  - `Encode.timeSpanExact` - Custom format
 
 *)
 
@@ -149,6 +177,43 @@ printfn $"%s{encodedPerson.ToJsonString()}"
 }
 ```
 The JSON object above has been formatted for display purposes, but the actual JSON string will be minified if no options are supplied to the `ToJsonString` method.
+
+## Mixed-Type Arrays
+
+Sometimes you need to encode arrays with mixed types, such as discriminated unions represented as `[tag, value]` tuples. JDeck provides the `Json.sequence` overload that accepts a sequence of already-encoded `JsonNode` values, allowing you to mix different types in a single array.
+
+*)
+
+// Encoding a mixed-type array for a discriminated union
+type Shape =
+  | Box of width: float32 * height: float32
+  | Circle of radius: float32
+
+  static member Encoder: Encoder<Shape> =
+    fun shape ->
+      match shape with
+      | Box(w, h) ->
+        Json.sequence [ Encode.string "Box"; Encode.single w; Encode.single h ]
+      | Circle r -> Json.sequence [ Encode.string "Circle"; Encode.single r ]
+
+let boxShape = Shape.Encoder(Box(10.5f, 20.3f))
+printfn $"%s{boxShape.ToJsonString()}" // ["Box",10.5,20.3]
+
+let circleShape = Shape.Encoder(Circle(5.0f))
+printfn $"%s{circleShape.ToJsonString()}" // ["Circle",5.0]
+
+(**
+The `Json.sequence` overload for `JsonNode seq` is particularly useful when encoding discriminated unions where array elements have different types (e.g., a string tag followed by numeric or object values).
+
+Alternatively, you can use `Encode.mixedSeq` to add encoded values to an existing `JsonArray`:
+*)
+
+let arr = JsonArray()
+Encode.mixedSeq [ Encode.int 1; Encode.string "hello"; Encode.boolean true ] arr
+printfn $"%s{arr.ToJsonString()}" // [1,"hello",true]
+
+(**
+This is particularly useful when you need to incrementally build up a mixed-type array or when working with pre-existing `JsonArray` instances.
 
 The encoding story is not set in stone yet for JDeck, and there's still room for improvement, feedback is appreciated in this regard.
 *)
