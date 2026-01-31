@@ -38,6 +38,7 @@ module Encoding =
     val inline timeSpanExactWith: format: string -> provider: IFormatProvider -> value: TimeSpan -> JsonNode
     val inline property: name: string * value: JsonNode -> jsonObject: JsonObject -> JsonObject
     val inline sequence: values: 'T seq * encoder: Encoder<'T> -> jsonArray: JsonArray -> JsonNode
+    val inline mixedSeq: values: JsonNode seq -> jsonArray: JsonArray -> JsonNode
     val inline map<'Key, 'Value>: values: IDictionary<'Key, 'Value> * encoder: MapEntryEncoder<'Key, 'Value> -> JsonObject
 
   /// <summary>Provides functions for creating JSON nodes.</summary>
@@ -51,3 +52,5 @@ module Encoding =
     static member inline object: values: KeyValuePair<string, JsonNode> seq -> JsonObject
     /// <summary>Creates a JsonArray from a sequence of values and an encoder.</summary>
     static member inline sequence: values: 'T seq * encoder: Encoder<'T> -> JsonNode
+    /// <summary>Creates a JsonArray from a sequence of JsonNodes.</summary>
+    static member inline sequence: values: JsonNode seq -> JsonNode
