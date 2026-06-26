@@ -129,19 +129,21 @@ type EncodingTests() =
 
   [<TestMethod>]
   member _.``Encode can encode a DateTime``() =
-    let dateTime = DateTime.Now
+    let dateTime = DateTime(2026, 6, 26, 3, 20, 11, DateTimeKind.Utc)
     let encoded = Encode.dateTime dateTime
-    let expected = $"\"{dateTime:o}\""
+    let expected = dateTime.ToString("o")
 
-    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+    Assert.AreEqual<string>(expected, encoded.GetValue<string>())
 
   [<TestMethod>]
   member _.``Encode can encode a DateTimeOffset``() =
-    let dateTimeOffset = DateTimeOffset.Now
-    let encoded = Encode.dateTimeOffset dateTimeOffset
-    let expected = $"\"{dateTimeOffset:o}\""
+    let dateTimeOffset =
+      DateTimeOffset(2026, 6, 26, 3, 20, 11, TimeSpan.FromHours 2)
 
-    Assert.AreEqual<string>(expected, encoded.ToJsonString())
+    let encoded = Encode.dateTimeOffset dateTimeOffset
+    let expected = dateTimeOffset.ToString("o")
+
+    Assert.AreEqual<string>(expected, encoded.GetValue<string>())
 
   [<TestMethod>]
   member _.``Encode can encode a TimeSpan``() =
