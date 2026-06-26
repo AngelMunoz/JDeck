@@ -11,7 +11,7 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
     <LangVersion>preview</LangVersion>
     <Nullable>true</Nullable>
-    <Version>1.1.0</Version>
+    <ChangelogFile>$(MSBuildThisFileDirectory)CHANGELOG.md</ChangelogFile>
   </PropertyGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)\LICENSE" Pack="true" PackagePath="\"/>

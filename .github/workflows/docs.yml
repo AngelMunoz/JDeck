@@ -8,6 +8,7 @@ on:
     paths:
       - JDeck/**
       - docs/**
+      - .github/workflows/docs.yml
 
 # We need some permissions to publish to Github Pages
 permissions:
@@ -19,16 +20,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the source code
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.x.x
-      # Restore the local tools
-      - name: Build Docs
-        run: dotnet fsi build.fsx -- -p ci:docs
-      # Upload the static files
+          dotnet-version: 10.0.x
+      - name: Restore tools
+        run: dotnet tool restore
+      - name: Build code
+        run: dotnet build -c Release
+      - name: Generate the documentation
+        run: dotnet fsdocs build --properties Configuration=Release --eval
       - name: Upload documentation
         uses: actions/upload-pages-artifact@v3
         with:

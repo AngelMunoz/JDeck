@@ -14,4 +14,7 @@
     <PackageReference Update="FSharp.Core" Version="9.0.100" />
     <PackageReference Condition="'$(TargetFramework)' == 'netstandard2.0'" Include="System.Text.Json" Version="9.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.3.3" PrivateAssets="all" />
+  </ItemGroup>
 </Project>
