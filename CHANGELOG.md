@@ -6,7 +6,7 @@
 
 ### Added
 
-- **JDeck:** `mixedSeq` function for decoding sequences of `JsonNode`.
+- **JDeck:** `mixedSeq` function for encoding sequences of `JsonNode`.
 - **JDeck:** Additional missing types added to the decoders and encoders.
 
 ## [1.0.0] - 2025-11-19

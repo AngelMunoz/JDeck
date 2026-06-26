@@ -1,6 +1,6 @@
 # JDeck a System.Text.Json wrapper
 
-JDeck is a [Thoth.Json]-like Json decoder based on `System.Text.Json` in a single file with no external
+JDeck is a [Thoth.Json]-like Json decoder based on `System.Text.Json` with no external
 dependencies. Plays well with other libraries that use `System.Text.Json` like [FSharp.SystemTextJson]
 
 > **Note:** While JDeck has no dependencies to start working right away, it is recommended to

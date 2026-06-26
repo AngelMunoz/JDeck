@@ -1,6 +1,6 @@
 # JDeck
 
-JDeck is a [Thoth.Json](https://github.com/thoth-org/Thoth.Json)-like JSON decoder for F# built on top of `System.Text.Json`, in a single file with no external dependencies. It plays well with other libraries that use `System.Text.Json` (such as [FSharp.SystemTextJson](https://github.com/Tarmil/FSharp.SystemTextJson)).
+JDeck is a [Thoth.Json](https://github.com/thoth-org/Thoth.Json)-like JSON decoder for F# built on top of `System.Text.Json`, with no external dependencies. It plays well with other libraries that use `System.Text.Json` (such as [FSharp.SystemTextJson](https://github.com/Tarmil/FSharp.SystemTextJson)).
 
 General setup and usage instructions can be found in the [README.md](README.md) file.
 
