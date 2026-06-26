@@ -20,8 +20,6 @@ General setup and usage instructions can be found in the [README.md](README.md) 
 
 Multi-targeting: `JDeck` targets `netstandard2.0;net8.0;net9.0;net10.0`. The test project targets `net8.0`.
 
-> `build.fsx` (Fun.Build) remains available as a local development helper, but CI builds and releases use raw `dotnet` commands.
-
 ## Changelog Management
 
 We follow https://github.com/ionide/KeepAChangelog guidelines.
